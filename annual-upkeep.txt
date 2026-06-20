@@ -1,0 +1,7 @@
+1. Clear out the db from last season by deleting main.db
+2. Run 'npm start' to create the model 
+3. Update the json file at schedule-latest-UPDATEME.json and set the cutoff dates for each week (the date+time of the first game of each week, usually thursday night)
+4. Update the schedule using 'npm run schedule'. this will load the dates from schedule-latest-UPDATEME.json and insert into the db.
+5. Games are now ready 
+
+TODO: is there a way to automate this by loading schedule from espn.com REST api or other? attach updating the schedule to a cron job?

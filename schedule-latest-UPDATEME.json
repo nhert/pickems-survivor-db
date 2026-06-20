@@ -1,0 +1,60 @@
+{
+    "latest": [
+        {
+            "week": 1,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 2,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 3,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 4,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 5,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 6,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 7,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 8,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 9,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 10,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 11,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 12,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 13,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        },
+        {
+            "week": 14,
+            "cutoff_datetime": "2026-09-09 12:00:00"
+        }
+    ]
+}

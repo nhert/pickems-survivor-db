@@ -1,0 +1,40 @@
+GENERIC
+
+check server health
+curl http://localhost:5000/api/status/
+
+get schedule
+example: /api/schedule/week#
+curl http://localhost:5000/api/schedule/1
+
+
+USERS
+
+Add user test curl
+curl -X POST http://localhost:5000/api/users/add -H "Content-Type: application/json" -d "{\"email\":\"test\",\"username\":\"testuser123\"}" 
+
+Get user test curl
+example: curl http://localhost:5000/api/users/get/EMAIL_HERE 
+curl http://localhost:5000/api/users/get/test 
+
+Get all usernames
+curl http://localhost:5000/api/users/usernames
+
+Update user
+example: curl -X PUT http://localhost:5000/api/users/update/EMAIL_HERE -H "Content-Type: application/json" -d "{\"username\":\"UPDATED_USERNAME_HERE\"}" 
+curl -X PUT http://localhost:5000/api/users/update/test -H "Content-Type: application/json" -d "{\"username\":\"testuser456\"}" 
+
+
+SURVIVOR POOL
+
+Add entry test curl
+curl -X POST http://localhost:5000/api/survivor_pool/add -H "Content-Type: application/json" -d "{\"email\":\"test\",\"week\":1,\"choice_sleeper_id\":\"12345\",\"choice_gm_name\":\"TestGMName\"}" 
+
+get all entries
+curl http://localhost:5000/api/survivor_pool/entries
+
+get single entry
+curl http://localhost:5000/api/survivor_pool/entry/test/1
+
+update entry
+curl -X PUT http://localhost:5000/api/survivor_pool/update/test/1 -H "Content-Type: application/json" -d "{\"choice_sleeper_id\":\"67891\",\"choice_gm_name\":\"TestGMName2\"}"
