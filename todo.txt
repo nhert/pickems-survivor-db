@@ -1,14 +1,2 @@
-- Add some sort of scheduled cron job to update results in db
-    - Runs late tuesday / wednesday morning at 6am (TBD)
-    - load all of this weeks scores from sleeper
-    - update the pickem scores db / elimination from survivor pool
-
-- Basic flow:   user requests the game page on the website 
--               server calls the getNflState sleeperApi to get current week 
--               server calls the getSchedule api here to find the cutoff date for this week
--               server when loading the page checks the server's internal clock to get current datetime
--              
-
-
-- implement a server side schedule to prevent users from making entries after games start
-- 
+- write a cron job to update the win/loss outcome of all survivor pool / pickems each week wednesday@2am by calling cron-jobs\run-update.js which automatically gets the last processed week and generates win/loss
+- write logging so that the execution of cron job / etc is captured for auditing purposes

@@ -1,6 +1,6 @@
 // routes/users.router.js
 import express from 'express';
-import { createUser, getAllUsernames, getUserByEmail, updateUsername } from '../data/queries.js';
+import { createUser, getAllUsers, getUserByEmail, updateUsername } from '../data/queries.js';
 
 const usersRouter = express.Router();
 
@@ -65,10 +65,11 @@ usersRouter.get('/get/:email', (req, res) => {
     });
 });
 
-usersRouter.get('/usernames', (req, res) => {
-    const recordedUsernames = getAllUsernames.all();
+usersRouter.get('/all', (req, res) => {
+    const recordedUsers = getAllUsers.all();
     return res.status(200).json(
-        recordedUsernames.map(({ username }) => ({
+        recordedUsers.map(({ user_email, username }) => ({
+            user_email: user_email,
             username: username
         }))
     );

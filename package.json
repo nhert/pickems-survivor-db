@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node --watch server.js",
-    "sample": "node sampledata.js",
-    "schedule": "node schedule.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "sample": "node ./example/sampledata.js",
+    "update-scores": "node ./cron-jobs/run-update.js",
+    "test": "node ./example/test-sleeper-update.js",
+    "db": "sqlite3 ./data/main.db"
   },
   "engines": {
     "node": ">=24.16.0"
