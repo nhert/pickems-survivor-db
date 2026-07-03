@@ -5,7 +5,7 @@ curl http://localhost:5000/api/status/
 
 get schedule
 example: /api/schedule/week#
-curl http://localhost:5000/api/schedule/1
+curl http://localhost:5000/api/schedule/
 
 
 USERS

@@ -6,4 +6,4 @@ if (args.length > 0) {
     week = args[0];
 }
 
-runUpdate(week);
+runUpdate(true, week);

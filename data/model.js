@@ -35,8 +35,10 @@ CREATE TABLE IF NOT EXISTS game_states (
     -- Survivor Pool outcome is UNKNOWN while there are multiple players alive
     survivor_pool_outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(survivor_pool_outcome IN ('WON', 'TIE', 'UNKNOWN')),
 
-     -- Comma separated list of winning emails (in the case of a tie that splits the pot). Just for display
-    survivor_pool_winning_owners TEXT
+    -- Comma separated list of winning emails (in the case of a tie that splits the pot). Just for display
+    survivor_pool_winning_owners TEXT,
+    -- Week that the Pool was won, for display purposes. 
+    survivor_pool_winning_week NUMBER
 );
 
 -- Initialize game states to default values if the record does not exist

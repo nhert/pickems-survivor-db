@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node --watch server.js",
-    "sample": "node ./example/sampledata.js",
     "update-scores": "node ./cron-jobs/run-update.js",
-    "test": "node ./example/test-sleeper-update.js",
+    "sample": "node -e \"require('./example/sampledata.js').genSamples()\"",
+    "reset": "node -e \"require('./data/reset-db.js').resetDatabaseToDefault()\"",
+    "test": "node ./data/manual-sleeper-update.js",
     "db": "sqlite3 ./data/main.db"
   },
   "engines": {

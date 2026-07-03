@@ -31,8 +31,15 @@ const updateGameStatesProcessedWeek = database.prepare(`
 
 const updateGameStatesSurvivorFinished = database.prepare(`
   UPDATE game_states
-  SET survivor_pool_outcome = ?, survivor_pool_winning_owners = ?, updated_at = ?
+  SET survivor_pool_outcome = ?, survivor_pool_winning_owners = ?, survivor_pool_winning_week = ?, updated_at = ?
 `);
+
+const resetDb_statements = [
+  'DELETE FROM game_states;',
+  'DELETE FROM survivor_pool_entry;',
+  'DELETE FROM users;',
+  'INSERT INTO game_states (updated_at) SELECT CURRENT_TIMESTAMP WHERE (SELECT COUNT(*) FROM game_states) = 0;'
+].map(sql => database.prepare(sql));
 
 // USER OPERATIONS
 
@@ -111,6 +118,7 @@ const deleteTodo = database.prepare(`
 */
 
 export {
+  resetDb_statements,
   // generic
   getSchedule,
   addSchedule,

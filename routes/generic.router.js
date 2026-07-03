@@ -45,7 +45,8 @@ genericRouter.get('/game_states', (req, res) => {
     return res.status(200).json({
         last_processed_week: states.last_processed_week,
         survivor_pool_outcome: states.survivor_pool_outcome,
-        survivor_pool_winning_owners: states.survivor_pool_winning_owners
+        survivor_pool_winning_owners: states.survivor_pool_winning_owners,
+        survivor_pool_winning_week: states.survivor_pool_winning_week
     });
 });
 
