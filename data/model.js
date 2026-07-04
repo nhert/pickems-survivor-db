@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- this gets mixed in with nflState from sleeper to represent the game schedule
 CREATE TABLE IF NOT EXISTS nfl_schedule (
+
     -- sleepers getNflState will flip to the next week on tuesday night to allow stat corrections (2-3am)
     week INTEGER NOT NULL,
 
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS nfl_schedule (
 );
 
 CREATE TABLE IF NOT EXISTS game_states (
+
     -- useful date records for auditing
     updated_at TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -47,6 +49,7 @@ SELECT CURRENT_TIMESTAMP
 WHERE (SELECT COUNT(*) FROM game_states) = 0;
 
 CREATE TABLE IF NOT EXISTS survivor_pool_entry (
+
     owner TEXT NOT NULL,
 
     -- week can be a value from 1-14 (pool ends before the fantasy playoffs)
@@ -62,7 +65,7 @@ CREATE TABLE IF NOT EXISTS survivor_pool_entry (
     -- Win/Loss only assigned to 100% completed weeks (rotates wednesday at 1:00am)
     -- Unknown assigned to incomplete weeks (UI loads sleeper score live)
     -- This value is only ever set by Cron Job scripts / manually triggered scripts
-    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'UNKNOWN')),
+    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'MISSED', 'UNKNOWN')),
 
     -- useful date records for auditing
     updated_at TEXT NOT NULL,

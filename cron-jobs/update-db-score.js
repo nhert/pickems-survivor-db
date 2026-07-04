@@ -1,4 +1,4 @@
-import { getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished } from '../data/queries.js';
+import { getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry } from '../data/queries.js';
 import { getSleeperMatchupsForWeek } from '../sleeper/sleeper-api.js';
 
 // params: boolean, number
@@ -43,35 +43,87 @@ export async function runUpdate(forceSurvivorProcessing, week) {
     // Logic to update survivor pool entries.
     // Need to get all the Survivor Pool entries for the current week 
     if (forceSurvivorProcessing || game_states.survivor_pool_outcome == "UNKNOWN") {
-        const survivorEntriesForWeek = getAllSurvivorPoolEntriesForWeek.all(week_to_update);
-        if (survivorEntriesForWeek) {
-            console.log(survivorEntriesForWeek);
-
-            // use the matchups array from above to determine outcome for each survivor entry
-            let successfulUpdateCount = 0;
-            for (var entry of survivorEntriesForWeek) {
-                var matchupResult = matchups.find(obj => obj.sleeperId == entry.choice_sleeper_id);
-                console.log(`Setting outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
-                entry.outcome = matchupResult.outcome;
-                const updateResult = updateSurvivorPoolEntryOutcome.run(matchupResult.outcome, entry.owner, week_to_update);
-                successfulUpdateCount += updateResult.changes;
-            }
-            console.log(`[${successfulUpdateCount}] rows successfully updated for entry count of [${survivorEntriesForWeek.length}]`);
-            if (survivorEntriesForWeek.length != successfulUpdateCount) {
-                console.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
-                return;
-            }
-
-            determineSurvivorPoolGameEndState(survivorEntriesForWeek, week_to_update, game_states);
-        } else {
-            console.error(`Could not find any survivor entries for week ${week_to_update}`);
+        let succeeded = processSurvivorPool(matchups, game_states, week_to_update);
+        if (!succeeded) {
+            console.error(`Survivor pool processing FAILED for week [${week_to_update}]`);
         }
     }
 
     // use the array from above to determine outcome for each pickems entry
+    // ...
 
     // Update game_states last processed week 
+    console.log(`Setting last processed week to [${week_to_update}]`);
     updateGameStatesProcessedWeek.run(week_to_update, new Date().toISOString());
+}
+
+function processSurvivorPool(matchups, game_states, week_to_update) {
+    const survivorEntriesForWeek = getAllSurvivorPoolEntriesForWeek.all(week_to_update);
+    if (survivorEntriesForWeek) {
+        console.log(survivorEntriesForWeek);
+
+        // use the matchups array from above to determine outcome for each survivor entry
+        let successfulUpdateCount = 0;
+        for (var entry of survivorEntriesForWeek) {
+            if (entry.outcome == "MISSED") {
+                // note: missed entries will never have their result changed by stat corrections or otherwise. If user somehow has a mistaken MISSED entry, will have to be fixed manually in the DB.
+                console.warn(`Skipping outcome resolution for ${entry.owner} for week ${week_to_update} since it is outcome MISSED`);
+                continue;
+            }
+            var matchupResult = matchups.find(obj => obj.sleeperId == entry.choice_sleeper_id);
+            console.log(`Setting outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
+            entry.outcome = matchupResult.outcome;
+            const updateResult = updateSurvivorPoolEntryOutcome.run(matchupResult.outcome, entry.owner, week_to_update);
+            successfulUpdateCount += updateResult.changes;
+        }
+
+        const countOfNonMissedEntries = survivorEntriesForWeek.filter(entry => entry.outcome != "MISSED").length;
+        console.log(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countOfNonMissedEntries}]`);
+        if (countOfNonMissedEntries != successfulUpdateCount) {
+            console.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
+            return false;
+        }
+
+        checkForMissedEntries(survivorEntriesForWeek, week_to_update, game_states);
+        determineSurvivorPoolGameEndState(survivorEntriesForWeek, week_to_update, game_states);
+        return true;
+    } else {
+        console.error(`Could not find any survivor entries for week ${week_to_update}`);
+        return false;
+    }
+}
+
+// After week 1, if a player has winning entries, but then misses a weeks submission, need to mark them as eliminated by inserting a MISSED survivor pool entry for them.
+// If a user misses the week 1 submission, they will be appropriately blocked in the UI from making any future submissions already.
+function checkForMissedEntries(survivorEntriesForWeek, week_to_update, game_states) {
+    if (week_to_update == 1) {
+        console.warn(`Skipping checkForMissedEntries processing since it is week 1`);
+        return;
+    }
+    console.log(`Running checkForMissedEntries for week [${week_to_update}]`);
+
+    // step 1 get list of emails who were not eliminated last week (they should be making an entry this week)
+    const lastWeek = (+week_to_update) - 1;
+    const survivorEntriesForLastWeek = getAllSurvivorPoolEntriesForWeek.all(lastWeek);
+    if (!survivorEntriesForLastWeek) {
+        console.error(`Skipping checkForMissedEntries processing since last weeks entries could not be found`);
+        return;
+    }
+    const winnersLastWeekEmailsArray = survivorEntriesForLastWeek.filter(obj => obj.outcome == "WIN" || obj.outcome == "TIE").map(entry => entry.owner);
+
+    // step 2 match the list of people who are still alive to the list of people who made submissions this week and get a list of missing emails.
+    const submissionsThisWeekEmailsArray = survivorEntriesForWeek.map(entry => entry.owner);
+    const missingEmails = winnersLastWeekEmailsArray.filter(item => !submissionsThisWeekEmailsArray.includes(item));
+
+    if (missingEmails.length > 0) {
+        console.log(`Found players with missing submissions this week ${missingEmails}`);
+        console.log(missingEmails);
+    }
+
+    for (var email of missingEmails) {
+        console.log(`Setting outcome for ${email} for week ${week_to_update} to [MISSED]! Shame!`);
+        createMissedSurvivorPoolEntry.run(email, week_to_update, new Date().toISOString());
+    }
 }
 
 function determineSurvivorPoolGameEndState(entries, week, game_states) {

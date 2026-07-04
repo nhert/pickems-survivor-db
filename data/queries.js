@@ -72,6 +72,11 @@ const createSurvivorPoolEntry = database.prepare(`
   VALUES (?, ?, ?, ?, ?)
 `);
 
+const createMissedSurvivorPoolEntry = database.prepare(`
+  INSERT INTO survivor_pool_entry (owner, week, choice_sleeper_id, choice_gm_name, outcome, updated_at)
+  VALUES (?, ?, '-1', 'Missed Deadline', 'MISSED', ?)
+`);
+
 const updateSurvivorPoolEntry = database.prepare(`
   UPDATE survivor_pool_entry 
   SET choice_sleeper_id = ?, choice_gm_name = ?, updated_at = ?
@@ -133,6 +138,7 @@ export {
   getAllUsers,
   //survivor pool
   createSurvivorPoolEntry,
+  createMissedSurvivorPoolEntry,
   updateSurvivorPoolEntry,
   updateSurvivorPoolEntryOutcome,
   getAllSurvivorPoolEntries,
