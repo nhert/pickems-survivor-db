@@ -38,3 +38,17 @@ curl http://localhost:5000/api/survivor_pool/entry/test/1
 
 update entry
 curl -X PUT http://localhost:5000/api/survivor_pool/update/test/1 -H "Content-Type: application/json" -d "{\"choice_sleeper_id\":\"67891\",\"choice_gm_name\":\"TestGMName2\"}"
+
+
+PICKEMS
+
+get all entries
+
+curl http://localhost:5000/api/pickems/entries/1
+
+
+curl -X POST http://localhost:5000/api/pickems/update/*email/*week -H "Content-Type: application/json" -d "{\"choice_sleeper_id\":\"SLEEPER_ID\",\"choice_gm_name\":\"NAME\",\"previous_sleeper_id\":\"SLEEPER_ID\"}" 
+curl -X POST http://localhost:5000/api/pickems/update/dummy.user.test@com.com/1 -H "Content-Type: application/json" -d "{\"choice_sleeper_id\":\"868693802389540864\",\"choice_gm_name\":\"NEWPICK\",\"previous_sleeper_id\":\"998276027312889856\"}" 
+
+curl -X POST http://localhost:5000/api/pickems/update/bonuses/*email/*week/*sleeperId -H "Content-Type: application/json" -d "{\"is_double_down\":\"true\",\"is_triple_down\":\"false\"}" 
+curl -X POST http://localhost:5000/api/pickems/update/bonuses/testuser1@b3fl.com/1/471702444481441792 -H "Content-Type: application/json" -d "{\"is_double_down\":2,\"is_triple_down\":0}" 

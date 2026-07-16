@@ -1,5 +1,5 @@
-import { addSchedule, clearSchedule } from './data/queries.js';
-import schedule from './_constants/schedule-latest-UPDATEME.json' with { type: 'json' };
+import { addSchedule, clearSchedule } from '../data/queries.js';
+import schedule from '../_constants/schedule-latest-UPDATEME.json' with { type: 'json' };
 
 function clearData() {
     clearSchedule.run();

@@ -1,6 +1,6 @@
 // Populates the db with some test data.
 
-import { createUser, createSurvivorPoolEntry } from '../data/queries.js';
+import { createUser, createSurvivorPoolEntry, createPickemsEntry } from '../data/queries.js';
 
 const A_LEAGUE_NAME = "A League";
 const B_LEAGUE_NAME = "B League";
@@ -221,60 +221,92 @@ export function genSamples() {
     // Create sample survivor pool entries
 
     //owner, week, choice_sleeper_id, choice_gm_name, updated_at
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 2, '1130914622246318080', USERS.find(user => user.sleeperId_current == '1130914622246318080').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 3, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 4, '867272838229454848', USERS.find(user => user.sleeperId_current == '867272838229454848').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 5, '471702444481441792', USERS.find(user => user.sleeperId_current == '471702444481441792').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('dummy.user.test@com.com', 6, '867479730138583040', USERS.find(user => user.sleeperId_current == '867479730138583040').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 7, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 8, '471826036959473664', USERS.find(user => user.sleeperId_current == '471826036959473664').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 9, '867562511770255360', USERS.find(user => user.sleeperId_current == '867562511770255360').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 10, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 11, '868705613276925952', USERS.find(user => user.sleeperId_current == '868705613276925952').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 12, '867587986001403904', USERS.find(user => user.sleeperId_current == '867587986001403904').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 13, '867489506998267904', USERS.find(user => user.sleeperId_current == '867489506998267904').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test@com.com', 14, '867601213447897088', USERS.find(user => user.sleeperId_current == '867601213447897088').name, new Date().toISOString());
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 1, '998276027312889856');
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 2, '1130914622246318080');
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 3, '866400340310917120');
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 4, '867272838229454848');
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 5, '471702444481441792');
+    sampleSurvivorPoolEntry('dummy.user.test@com.com', 6, '867479730138583040');
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 7, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 8, '471826036959473664', USERS.find(user => user.sleeperId_current == '471826036959473664').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 9, '867562511770255360', USERS.find(user => user.sleeperId_current == '867562511770255360').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 10, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 11, '868705613276925952', USERS.find(user => user.sleeperId_current == '868705613276925952').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 12, '867587986001403904', USERS.find(user => user.sleeperId_current == '867587986001403904').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 13, '867489506998267904', USERS.find(user => user.sleeperId_current == '867489506998267904').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test@com.com', 14, '867601213447897088', USERS.find(user => user.sleeperId_current == '867601213447897088').name, new Date().toISOString());
 
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 2, '1130914622246318080', USERS.find(user => user.sleeperId_current == '1130914622246318080').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 3, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 4, '867272838229454848', USERS.find(user => user.sleeperId_current == '867272838229454848').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 5, '471702444481441792', USERS.find(user => user.sleeperId_current == '471702444481441792').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 6, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 7, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 8, '471826036959473664', USERS.find(user => user.sleeperId_current == '471826036959473664').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 9, '867562511770255360', USERS.find(user => user.sleeperId_current == '867562511770255360').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 10, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 11, '868705613276925952', USERS.find(user => user.sleeperId_current == '868705613276925952').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 12, '867587986001403904', USERS.find(user => user.sleeperId_current == '867587986001403904').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 13, '867489506998267904', USERS.find(user => user.sleeperId_current == '867489506998267904').name, new Date().toISOString());
-    // createSurvivorPoolEntry.run('dummy.user.test2@com.com', 14, '867601213447897088', USERS.find(user => user.sleeperId_current == '867601213447897088').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 2, '1130914622246318080', USERS.find(user => user.sleeperId_current == '1130914622246318080').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 3, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 4, '867272838229454848', USERS.find(user => user.sleeperId_current == '867272838229454848').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 5, '471702444481441792', USERS.find(user => user.sleeperId_current == '471702444481441792').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 6, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 7, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 8, '471826036959473664', USERS.find(user => user.sleeperId_current == '471826036959473664').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 9, '867562511770255360', USERS.find(user => user.sleeperId_current == '867562511770255360').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 10, '866400340310917120', USERS.find(user => user.sleeperId_current == '866400340310917120').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 11, '868705613276925952', USERS.find(user => user.sleeperId_current == '868705613276925952').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 12, '867587986001403904', USERS.find(user => user.sleeperId_current == '867587986001403904').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 13, '867489506998267904', USERS.find(user => user.sleeperId_current == '867489506998267904').name, new Date().toISOString());
+    // sampleSurvivorPoolEntry('dummy.user.test2@com.com', 14, '867601213447897088', USERS.find(user => user.sleeperId_current == '867601213447897088').name, new Date().toISOString());
 
     // MISSED ENTRY TEST
-    createSurvivorPoolEntry.run('testuser3@b3fl.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser3@b3fl.com', 2, '1130914622246318080', USERS.find(user => user.sleeperId_current == '1130914622246318080').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser3@b3fl.com', 3, '867562511770255360', USERS.find(user => user.sleeperId_current == '867562511770255360').name, new Date().toISOString());
+    sampleSurvivorPoolEntry('testuser3@b3fl.com', 1, '998276027312889856');
+    sampleSurvivorPoolEntry('testuser3@b3fl.com', 2, '1130914622246318080');
+    sampleSurvivorPoolEntry('testuser3@b3fl.com', 3, '867562511770255360');
 
     // week 1 fail
-    createSurvivorPoolEntry.run('testuser4@b3fl.com', 1, '867593986880229376', USERS.find(user => user.sleeperId_current == '867593986880229376').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser5@b3fl.com', 1, '1130914622246318080', USERS.find(user => user.sleeperId_current == '1130914622246318080').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser6@b3fl.com', 1, '441653692567908352', USERS.find(user => user.sleeperId_current == '441653692567908352').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser7@b3fl.com', 1, '867462835893080064', USERS.find(user => user.sleeperId_current == '867462835893080064').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser8@b3fl.com', 1, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
+    sampleSurvivorPoolEntry('testuser4@b3fl.com', 1, '867593986880229376');
+    sampleSurvivorPoolEntry('testuser5@b3fl.com', 1, '1130914622246318080');
+    sampleSurvivorPoolEntry('testuser6@b3fl.com', 1, '441653692567908352');
+    sampleSurvivorPoolEntry('testuser7@b3fl.com', 1, '867462835893080064');
+    sampleSurvivorPoolEntry('testuser8@b3fl.com', 1, '867598805816795136');
 
+    // TIE
+    //sampleSurvivorPoolEntry('testuser4@b3fl.com', 12, '441653692567908352');
 
     // MAKE MORE ENTRIES FOR TESTING
 
-    createSurvivorPoolEntry.run('testuser1@b3fl.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser1@b3fl.com', 2, '867598805816795136', USERS.find(user => user.sleeperId_current == '867598805816795136').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser1@b3fl.com', 3, '867601213447897088', USERS.find(user => user.sleeperId_current == '867601213447897088').name, new Date().toISOString());
+    sampleSurvivorPoolEntry('testuser1@b3fl.com', 1, '998276027312889856');
+    sampleSurvivorPoolEntry('testuser1@b3fl.com', 2, '867598805816795136');
+    sampleSurvivorPoolEntry('testuser1@b3fl.com', 3, '867601213447897088');
 
-    createSurvivorPoolEntry.run('testuser2@b3fl.com', 1, '998276027312889856', USERS.find(user => user.sleeperId_current == '998276027312889856').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser2@b3fl.com', 2, '868705613276925952', USERS.find(user => user.sleeperId_current == '868705613276925952').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser2@b3fl.com', 3, '441653692567908352', USERS.find(user => user.sleeperId_current == '441653692567908352').name, new Date().toISOString());
-    createSurvivorPoolEntry.run('testuser2@b3fl.com', 4, '867593986880229376', USERS.find(user => user.sleeperId_current == '867593986880229376').name, new Date().toISOString());
+    sampleSurvivorPoolEntry('testuser2@b3fl.com', 1, '998276027312889856');
+    sampleSurvivorPoolEntry('testuser2@b3fl.com', 2, '868705613276925952');
+    sampleSurvivorPoolEntry('testuser2@b3fl.com', 3, '441653692567908352');
+    sampleSurvivorPoolEntry('testuser2@b3fl.com', 4, '867593986880229376');
 
 
-    // etc
+    // PICKEMS
+
+    samplePickemsEntry('dummy.user.test@com.com', 1, '998276027312889856', 0, 1);
+    samplePickemsEntry('dummy.user.test@com.com', 1, '471702444481441792');
+    samplePickemsEntry('dummy.user.test@com.com', 1, '867587986001403904');
+
+    samplePickemsEntry('testuser1@b3fl.com', 1, '998276027312889856');
+    samplePickemsEntry('testuser1@b3fl.com', 1, '471702444481441792');
+    samplePickemsEntry('testuser1@b3fl.com', 1, '867587986001403904');
+
+    samplePickemsEntry('testuser2@b3fl.com', 1, '867587986001403904', 1, 0);
+
+    // loss
+    samplePickemsEntry('testuser3@b3fl.com', 1, '867598396356259840');
+
+    // tie
+    samplePickemsEntry('testuser4@b3fl.com', 12, '441653692567908352');
+
+    // loss double/triple
+    samplePickemsEntry('testuser5@b3fl.com', 1, '867598396356259840', 1, 0);
+    samplePickemsEntry('testuser6@b3fl.com', 1, '867598396356259840', 0, 1);
+}
+
+function sampleSurvivorPoolEntry(email, week, sleeperid) {
+    console.log(`Making Survivor Pool Entry ${email} ${week} choice: ${sleeperid}`);
+    createSurvivorPoolEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, new Date().toISOString());
+}
+
+function samplePickemsEntry(email, week, sleeperid, isDouble = 0, isTriple = 0) {
+    console.log(`Making Pickems Entry ${email} ${week} choice: ${sleeperid}`);
+    createPickemsEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, isDouble, isTriple, new Date().toISOString());
 }

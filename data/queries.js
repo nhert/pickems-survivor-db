@@ -37,6 +37,7 @@ const updateGameStatesSurvivorFinished = database.prepare(`
 const resetDb_statements = [
   'DELETE FROM game_states;',
   'DELETE FROM survivor_pool_entry;',
+  'DELETE FROM pickems_entry;',
   'DELETE FROM users;',
   'INSERT INTO game_states (updated_at) SELECT CURRENT_TIMESTAMP WHERE (SELECT COUNT(*) FROM game_states) = 0;'
 ].map(sql => database.prepare(sql));
@@ -90,6 +91,7 @@ const updateSurvivorPoolEntryOutcome = database.prepare(`
   WHERE owner = ? AND week = ?
 `);
 
+// Theoretical max size of this table is 364 rows
 const getAllSurvivorPoolEntries = database.prepare(`
   SELECT * 
   FROM survivor_pool_entry
@@ -116,11 +118,69 @@ const getSurvivorPoolEntry = database.prepare(`
 
 // PICKEMS OPERATIONS
 
-/*
-const deleteTodo = database.prepare(`
-  DELETE from todos WHERE todo_id = ? AND todo_owner = ?  
+// create
+const createPickemsEntry = database.prepare(`
+  INSERT INTO pickems_entry (owner, week, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
-*/
+
+// delete
+const deletePickemsEntry = database.prepare(`
+  DELETE FROM pickems_entry
+  WHERE owner = ? AND week = ? AND choice_sleeper_id = ?
+`);
+
+// update outcome + score
+const updatePickemsEntryOutcomeAndScore = database.prepare(`
+  UPDATE pickems_entry
+  SET outcome = ?, score = ?
+  WHERE owner = ? AND week = ? AND choice_sleeper_id = ?
+`);
+
+// update score only
+const updatePickemsEntryScore = database.prepare(`
+  UPDATE pickems_entry
+  SET score = ?
+  WHERE owner = ? AND week = ? AND choice_sleeper_id = ?
+`);
+
+// getAll - maximum theoretical table size 26 * 182 rows = 4732 rows
+const getAllPickemsEntries = database.prepare(`
+  SELECT * 
+  FROM pickems_entry
+`);
+
+// getAllForWeek
+const getAllPickemsEntriesForWeek = database.prepare(`
+  SELECT * 
+  FROM pickems_entry
+  WHERE week = ?
+`);
+
+// getAllForWeekAndUser -> owner =?, week =?,
+const getAllPickemsEntriesForWeekAndUser = database.prepare(`
+  SELECT * 
+  FROM pickems_entry
+  WHERE owner = ? AND week = ?
+`);
+
+const getPickemsEntry = database.prepare(`
+  SELECT * 
+  FROM pickems_entry
+  WHERE owner = ? AND week = ? AND choice_sleeper_id = ?
+`);
+
+const getPickemsScores = database.prepare(`
+  SELECT 
+    owner, 
+    SUM(score) AS total_score
+  FROM 
+    pickems_entry
+  GROUP BY 
+    owner
+  ORDER BY
+    total_score DESC;
+`);
 
 export {
   resetDb_statements,
@@ -144,6 +204,15 @@ export {
   getAllSurvivorPoolEntries,
   getAllSurvivorPoolEntriesForWeek,
   getSurvivorPoolEntry,
-  getAllSurvivorPoolChoicesForUser
+  getAllSurvivorPoolChoicesForUser,
   //pick ems
+  createPickemsEntry,
+  deletePickemsEntry,
+  updatePickemsEntryOutcomeAndScore,
+  updatePickemsEntryScore,
+  getAllPickemsEntries,
+  getAllPickemsEntriesForWeek,
+  getAllPickemsEntriesForWeekAndUser,
+  getPickemsEntry,
+  getPickemsScores
 };

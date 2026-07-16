@@ -75,6 +75,13 @@ usersRouter.get('/all', (req, res) => {
     );
 });
 
+usersRouter.get('/usernames', (req, res) => {
+    const recordedUsers = getAllUsers.all();
+    return res.status(200).json(
+        recordedUsers.map(user => user.username)
+    );
+});
+
 usersRouter.put('/update/:email', (req, res) => {
     const email = req.params.email;
     const { username } = req.body;

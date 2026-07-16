@@ -1,2 +1,11 @@
 - write a cron job to update the win/loss outcome of all survivor pool / pickems each week wednesday@2am by calling cron-jobs\run-update.js which automatically gets the last processed week and generates win/loss
 - write logging so that the execution of cron job / etc is captured for auditing purposes
+
+
+logic for pickems
+    - scoring: 2 pts for correct pick, 3 pts for underdog pick, 2x score if doubled, 3x score if tripled
+    - rules: make one pick from each matchup each week. Receive one double and triple to play each week. If you miss deadline, you are assigned all underdog picks for this week and receive no bonuses.
+
+    - only display underdog status for the current week and the past. cant project past that
+    - when doing cron-jobs\update-db-score.js processing, call some sleeperapi method to get each players underdog status for the week (copy logic for front-end)
+    - the api method should accept the current week, and then calculate each gms record up to that week to determine underdog status (this is a future-looking solution that allows scores to be recalculated up to the current date)

@@ -1,5 +1,11 @@
-import { getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry } from '../data/queries.js';
+import { getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry, getAllPickemsEntriesForWeek, updatePickemsEntryOutcomeAndScore } from '../data/queries.js';
 import { getSleeperMatchupsForWeek } from '../sleeper/sleeper-api.js';
+
+const SCORE_WIN = 2;
+const SCORE_UNDERDOG_WIN = 3;
+
+const SCORE_DOUBLE_DOWN_LOSS = -1;
+const SCORE_TRIPLE_DOWN_LOSS = -2;
 
 // params: boolean, number
 export async function runUpdate(forceSurvivorProcessing, week) {
@@ -33,31 +39,31 @@ export async function runUpdate(forceSurvivorProcessing, week) {
     ....
     ]
     */
-    const matchups = await getSleeperMatchupsForWeek(week_to_update);
-    if (!matchups) {
+    const winLoss = await getSleeperMatchupsForWeek(week_to_update);
+    if (!winLoss) {
         console.error("Could not find sleeper matchups!");
         return;
     }
-    console.log(matchups);
+    console.log(winLoss);
 
     // Logic to update survivor pool entries.
     // Need to get all the Survivor Pool entries for the current week 
     if (forceSurvivorProcessing || game_states.survivor_pool_outcome == "UNKNOWN") {
-        let succeeded = processSurvivorPool(matchups, game_states, week_to_update);
+        let succeeded = processSurvivorPool(winLoss, game_states, week_to_update);
         if (!succeeded) {
             console.error(`Survivor pool processing FAILED for week [${week_to_update}]`);
         }
     }
 
     // use the array from above to determine outcome for each pickems entry
-    // ...
+    processPickems(winLoss, week_to_update);
 
     // Update game_states last processed week 
     console.log(`Setting last processed week to [${week_to_update}]`);
     updateGameStatesProcessedWeek.run(week_to_update, new Date().toISOString());
 }
 
-function processSurvivorPool(matchups, game_states, week_to_update) {
+function processSurvivorPool(winLoss, game_states, week_to_update) {
     const survivorEntriesForWeek = getAllSurvivorPoolEntriesForWeek.all(week_to_update);
     if (survivorEntriesForWeek) {
         console.log(survivorEntriesForWeek);
@@ -70,10 +76,10 @@ function processSurvivorPool(matchups, game_states, week_to_update) {
                 console.warn(`Skipping outcome resolution for ${entry.owner} for week ${week_to_update} since it is outcome MISSED`);
                 continue;
             }
-            var matchupResult = matchups.find(obj => obj.sleeperId == entry.choice_sleeper_id);
-            console.log(`Setting outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
+            var matchupResult = winLoss.find(obj => obj.sleeperId == entry.choice_sleeper_id);
+            console.log(`Setting survivor pool outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
             entry.outcome = matchupResult.outcome;
-            const updateResult = updateSurvivorPoolEntryOutcome.run(matchupResult.outcome, entry.owner, week_to_update);
+            const updateResult = updateSurvivorPoolEntryOutcome.run(matchupResult.outcome, entry.owner, entry.week);
             successfulUpdateCount += updateResult.changes;
         }
 
@@ -169,4 +175,81 @@ function getListOfPlayerEmailsFromEntries(filteredEntries) {
     }
 
     return emailsArray.join(",");
+}
+
+function processPickems(winLoss, week_to_update) {
+    const pickemsEntriesForWeek = getAllPickemsEntriesForWeek.all(week_to_update);
+
+    if (pickemsEntriesForWeek) {
+        console.log(pickemsEntriesForWeek);
+
+        // use the matchups array from above to determine outcome for each survivor entry
+        let successfulUpdateCount = 0;
+        for (var entry of pickemsEntriesForWeek) {
+
+            var matchupResult = winLoss.find(obj => obj.sleeperId == entry.choice_sleeper_id);
+            console.log(`Setting pickems outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
+            entry.outcome = matchupResult.outcome;
+
+            // get underdog status
+            let isUnderdogPick = determineUnderdog();
+
+            let isDouble = entry.is_double_down;
+            let isTriple = entry.is_triple_down;
+
+            // get score
+            let scoreCalc = calculateScore(matchupResult.outcome, isUnderdogPick, isDouble, isTriple);
+
+            const updateResult = updatePickemsEntryOutcomeAndScore.run(matchupResult.outcome, scoreCalc, entry.owner, entry.week, entry.choice_sleeper_id);
+            successfulUpdateCount += updateResult.changes;
+        }
+
+        const countEntries = pickemsEntriesForWeek.length;
+        console.log(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countEntries}]`);
+        if (countEntries != successfulUpdateCount) {
+            console.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
+            return false;
+        }
+
+        return true;
+    } else {
+        console.error(`Could not find any pickems entries for week ${week_to_update}`);
+        return false;
+    }
+}
+
+function determineUnderdog() {
+    //TODO: UPDATE THIS
+    return false;
+}
+
+function calculateScore(outcome, isUnderdogPick, isDouble, isTriple) {
+    let scoreCalc = 0;
+
+    if (outcome == "WIN") {
+        if (isUnderdogPick) {
+            scoreCalc = SCORE_UNDERDOG_WIN;
+        } else {
+            scoreCalc = SCORE_WIN;
+        }
+        scoreCalc = calculateBonuses(scoreCalc, isDouble, isTriple);
+    } else if (outcome == "LOSS") {
+        if (isDouble) {
+            scoreCalc = SCORE_DOUBLE_DOWN_LOSS;
+        } else if (isTriple) {
+            scoreCalc = SCORE_TRIPLE_DOWN_LOSS;
+        }
+    }
+
+    return scoreCalc;
+}
+
+function calculateBonuses(score, isDouble, isTriple) {
+    if (isDouble) {
+        return +score * 2;
+    } else if (isTriple) {
+        return +score * 3;
+    } else {
+        return +score;
+    }
 }
