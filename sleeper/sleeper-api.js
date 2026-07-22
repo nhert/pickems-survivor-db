@@ -14,22 +14,28 @@ async function getSleeperRosterRecords(leagueId) {
 }
 
 export async function getSleeperMatchupsForWeek(week) {
-    console.log(`Running getSleeperMatchupsForWeek() with week [${week}]`);
     if (!week) {
         console.error("Week must be provided to getSleeperMatchupsForWeek()");
         return null;
     }
+    console.log(`Running getSleeperMatchupsForWeek() with week [${week}]`);
 
-    var resultingWinLossMapA = [];
-    var resultingWinLossMapB = [];
-
+    var resultingWinLossMap = [];
+    var resultingMatchups = [];
+    var dataA = {};
+    var dataB = {};
     const a_league_id = leagues.a_league_sleeper_id;
     const b_league_id = leagues.b_league_sleeper_id;
 
-    resultingWinLossMapA = await getMatchupResults(a_league_id, week);
-    resultingWinLossMapB = await getMatchupResults(b_league_id, week);
+    dataA = await getMatchupResults(a_league_id, week);
+    dataB = await getMatchupResults(b_league_id, week);
+    resultingWinLossMap = dataA.winLoss.concat(dataB.winLoss);
+    resultingMatchups = dataA.matchups.concat(dataB.matchups);
 
-    return resultingWinLossMapA.concat(resultingWinLossMapB);
+    return {
+        winLoss: resultingWinLossMap,
+        matchups: resultingMatchups
+    }
 }
 
 async function getMatchupResults(leagueId, week) {
@@ -91,15 +97,26 @@ async function getMatchupResults(leagueId, week) {
         }
 
         for (var matchup of leagueMatchups) {
-            for (var playerInMatchup of matchup) {
-                resultingWinLossArray.push({
-                    sleeperId: playerInMatchup.userId,
-                    outcome: playerInMatchup.outcome
-                });
+            if (matchup.length != 2) {
+                console.error(`Somehow, there was a matchup without 2 players in it. Try running script again`);
+                return null;
             }
+            resultingWinLossArray.push({
+                sleeperId: matchup[0].userId,
+                sleeperId_opponent: matchup[1].userId,
+                outcome: matchup[0].outcome
+            });
+            resultingWinLossArray.push({
+                sleeperId: matchup[1].userId,
+                sleeperId_opponent: matchup[0].userId,
+                outcome: matchup[1].outcome
+            });
         }
 
-        return resultingWinLossArray;
+        return {
+            winLoss: resultingWinLossArray,
+            matchups: leagueMatchups
+        };
     } catch (error) {
         console.error('Fetch error:', error);
     }

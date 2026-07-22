@@ -16,7 +16,7 @@ demoRouter.get('/next_week', async (req, res) => {
 });
 
 demoRouter.get('/reset', async (req, res) => {
-    await resetDatabaseToDefault();
+    await resetDatabaseToDefault(true);
     await genSamples();
 
     return res

@@ -24,9 +24,12 @@ CREATE TABLE IF NOT EXISTS nfl_schedule (
     cutoff_datetime DATETIME NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS matchups (
-    -- sleepers getNflState will flip to the next week on tuesday night to allow stat corrections (2-3am)
-    week INTEGER NOT NULL
+CREATE TABLE IF NOT EXISTS sleeper_win_loss_matrix (
+    sleeper_id TEXT NOT NULL,
+    week INTEGER NOT NULL,
+    outcome TEXT NOT NULL CHECK(outcome IN ('WIN', 'LOSS', 'TIE')),
+
+    PRIMARY KEY (sleeper_id, week)
 );
 
 CREATE TABLE IF NOT EXISTS game_states (
@@ -103,7 +106,7 @@ CREATE TABLE IF NOT EXISTS pickems_entry (
     -- Missed means the user missed the deadline for an entry
     -- Unknown assigned to incomplete weeks (UI loads sleeper score live)
     -- This value is only ever set by Cron Job scripts / manually triggered scripts
-    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'MISSED', 'UNKNOWN')),
+    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'UNKNOWN')),
 
     score INTEGER NOT NULL DEFAULT 0,
 
@@ -112,6 +115,9 @@ CREATE TABLE IF NOT EXISTS pickems_entry (
 
     -- Gives 3x bonus points for correct guesses
     is_triple_down BOOLEAN NOT NULL DEFAULT FALSE CHECK (is_triple_down IN (0, 1)),
+
+    -- Set for picks assigned automatically by server if user missed deadline and is enrolled in pickems actively
+    is_auto_pick BOOLEAN NOT NULL DEFAULT FALSE CHECK (is_auto_pick IN (0, 1)),
 
     -- useful date records for auditing
     updated_at TEXT NOT NULL,

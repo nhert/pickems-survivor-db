@@ -279,14 +279,24 @@ export function genSamples() {
 
 
     // PICKEMS
-
     samplePickemsEntry('dummy.user.test@com.com', 1, '998276027312889856', 0, 1);
     samplePickemsEntry('dummy.user.test@com.com', 1, '471702444481441792');
     samplePickemsEntry('dummy.user.test@com.com', 1, '867587986001403904');
 
+    samplePickemsEntry('dummy.user.test@com.com', 2, '471702444481441792');
+    samplePickemsEntry('dummy.user.test@com.com', 2, '867531909708840960');
+    samplePickemsEntry('dummy.user.test@com.com', 2, '867433255367008256');
+
     samplePickemsEntry('testuser1@b3fl.com', 1, '998276027312889856');
     samplePickemsEntry('testuser1@b3fl.com', 1, '471702444481441792');
     samplePickemsEntry('testuser1@b3fl.com', 1, '867587986001403904');
+
+    samplePickemsEntry('testuser1@b3fl.com', 2, '998276027312889856');
+    samplePickemsEntry('testuser1@b3fl.com', 2, '471702444481441792');
+    samplePickemsEntry('testuser1@b3fl.com', 2, '865480383385448448');
+
+    // Rimon - loses week 1, plays against 1-0 team in week 2 so underdog
+    samplePickemsEntry('testuser2@b3fl.com', 2, '869618771407556608');
 
     samplePickemsEntry('testuser2@b3fl.com', 1, '867587986001403904', 1, 0);
 
@@ -308,5 +318,5 @@ function sampleSurvivorPoolEntry(email, week, sleeperid) {
 
 function samplePickemsEntry(email, week, sleeperid, isDouble = 0, isTriple = 0) {
     console.log(`Making Pickems Entry ${email} ${week} choice: ${sleeperid}`);
-    createPickemsEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, isDouble, isTriple, new Date().toISOString());
+    createPickemsEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, isDouble, isTriple, 0, new Date().toISOString());
 }

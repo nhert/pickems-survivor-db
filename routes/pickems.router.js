@@ -1,23 +1,7 @@
 import express from 'express';
-import { getAllPickemsEntries, getAllPickemsEntriesForWeek, getPickemsEntry, deletePickemsEntry, createPickemsEntry, getPickemsScores } from '../data/queries.js';
+import { getWinTotalsForWeek, getAllPickemsEntries, getAllPickemsEntriesForWeek, getPickemsEntry, deletePickemsEntry, createPickemsEntry, getPickemsScores } from '../data/queries.js';
 
 const pickemsRouter = express.Router();
-
-// pickemsRouter.get('/entries', (req, res) => {
-//     const entries = getAllPickemsEntries.all();
-//     return res.status(200).json(
-//         entries.map(({ owner, week, choice_sleeper_id, choice_gm_name, outcome, score, is_double_down, is_triple_down }) => ({
-//             owner,
-//             week,
-//             choice_sleeper_id,
-//             choice_gm_name,
-//             outcome,
-//             score,
-//             is_double_down,
-//             is_triple_down
-//         }))
-//     );
-// });
 
 pickemsRouter.get('/entries/:week', (req, res) => {
     const week = req.params.week;
@@ -27,7 +11,7 @@ pickemsRouter.get('/entries/:week', (req, res) => {
     const entries = getAllPickemsEntriesForWeek.all(week);
 
     return res.status(200).json(
-        entries.map(({ owner, week, choice_sleeper_id, choice_gm_name, outcome, score, is_double_down, is_triple_down }) => ({
+        entries.map(({ owner, week, choice_sleeper_id, choice_gm_name, outcome, score, is_double_down, is_triple_down, is_auto_pick }) => ({
             owner,
             week,
             choice_sleeper_id,
@@ -35,7 +19,8 @@ pickemsRouter.get('/entries/:week', (req, res) => {
             outcome,
             score,
             is_double_down,
-            is_triple_down
+            is_triple_down,
+            is_auto_pick
         }))
     );
 });
@@ -88,7 +73,7 @@ pickemsRouter.post('/make_pick/:email/:week', (req, res) => {
     const updateTime = new Date().toISOString();
 
     // add new entry
-    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, 0, 0, updateTime);
+    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, 0, 0, 0, updateTime);
     return res.status(200).json({
         message: 'User Pickems Entry successfully updated'
     });
@@ -111,11 +96,25 @@ pickemsRouter.post('/make_bonus_pick/:email/:week', (req, res) => {
 
     const updateTime = new Date().toISOString();
 
-    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, is_double_down ? 1 : 0, is_triple_down ? 1 : 0, updateTime);
+    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, is_double_down ? 1 : 0, is_triple_down ? 1 : 0, 0, updateTime);
     return res.status(200).json({
         message: 'User Pickems Entry Bonuses successfully updated'
     });
 });
 
+pickemsRouter.get('/underdogs/:week', (req, res) => {
+    const week = req.params.week;
+    if (!week) {
+        return res.status(400).json({ error: 'Missing week parameter' });
+    }
+    if (week == 1) {
+        return res.status(200).json({ warning: 'Underdogs cannot be calculated for week 1' });
+    }
+
+    const winTotals = getWinTotalsForWeek.all(week);
+    return res.status(200).json(winTotals.map(({ sleeper_id, wins, losses, ties }) => ({
+        sleeper_id, wins, losses, ties
+    })));
+});
 
 export default pickemsRouter;

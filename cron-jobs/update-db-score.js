@@ -1,18 +1,21 @@
-import { getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry, getAllPickemsEntriesForWeek, updatePickemsEntryOutcomeAndScore } from '../data/queries.js';
+import { getActivePickemsUsers, getNumberOfWinsForUserUpToWeek, addOrUpdateSleeperWinLossMatrixEntry, getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry, getAllPickemsEntriesForWeek, updatePickemsEntryOutcomeAndScore, createPickemsEntry } from '../data/queries.js';
 import { getSleeperMatchupsForWeek } from '../sleeper/sleeper-api.js';
+import { logger } from '../logging.js'
+
+const EXPECTED_MATCHUPS_PER_WEEK = 13;
 
 const SCORE_WIN = 2;
 const SCORE_UNDERDOG_WIN = 3;
 
-const SCORE_DOUBLE_DOWN_LOSS = -1;
-const SCORE_TRIPLE_DOWN_LOSS = -2;
+const SCORE_DOUBLE_DOWN_LOSS = -2;
+const SCORE_TRIPLE_DOWN_LOSS = -3;
 
 // params: boolean, number
-export async function runUpdate(forceSurvivorProcessing, week) {
+export async function runUpdate(manualOverride, week) {
     // Need to get the last week we ran the update for. Stored in game_states
-    const game_states = getGameStates.get();
+    const game_states = null;
     if (!game_states) {
-        console.error("Could not find game_states");
+        logger.error("Could not find game_states");
         return;
     }
 
@@ -20,6 +23,7 @@ export async function runUpdate(forceSurvivorProcessing, week) {
     // Otherwise if week is null, get the last processed week from DB and do + 1 to process the latest week.
     const week_to_update = week ?? game_states.last_processed_week + 1;
     console.log(`Running update-db-score.js for week [${week_to_update}] at ${new Date()}`);
+    logger.info(`Running update-db-score.js for week [${week_to_update}] at ${new Date()}`);
     if (week_to_update > 14) {
         console.warn("Skipping update-db-score.js since week is out of range (>14)");
         return;
@@ -39,16 +43,23 @@ export async function runUpdate(forceSurvivorProcessing, week) {
     ....
     ]
     */
-    const winLoss = await getSleeperMatchupsForWeek(week_to_update);
-    if (!winLoss) {
-        console.error("Could not find sleeper matchups!");
+    const sleeperMatchupData = await getSleeperMatchupsForWeek(week_to_update);
+    if (!sleeperMatchupData || !sleeperMatchupData.winLoss || !sleeperMatchupData.matchups) {
+        console.error("Got a null value while checking sleeper matchups!");
         return;
     }
+
+    const winLoss = sleeperMatchupData.winLoss;
+    const matchups = sleeperMatchupData.matchups;
     console.log(winLoss);
+    console.log(matchups);
+
+    // update win-loss matrix table so we can calculate / recalculate underdog status for players for any input week during the season
+    updateSleeperWinLossMatrixTable(week_to_update, winLoss);
 
     // Logic to update survivor pool entries.
     // Need to get all the Survivor Pool entries for the current week 
-    if (forceSurvivorProcessing || game_states.survivor_pool_outcome == "UNKNOWN") {
+    if (manualOverride || game_states.survivor_pool_outcome == "UNKNOWN") {
         let succeeded = processSurvivorPool(winLoss, game_states, week_to_update);
         if (!succeeded) {
             console.error(`Survivor pool processing FAILED for week [${week_to_update}]`);
@@ -56,11 +67,25 @@ export async function runUpdate(forceSurvivorProcessing, week) {
     }
 
     // use the array from above to determine outcome for each pickems entry
-    processPickems(winLoss, week_to_update);
+    let succeeded = processPickems(winLoss, matchups, week_to_update);
+    if (!succeeded) {
+        console.error(`Pickems processing FAILED for week [${week_to_update}]`);
+    }
 
     // Update game_states last processed week 
-    console.log(`Setting last processed week to [${week_to_update}]`);
-    updateGameStatesProcessedWeek.run(week_to_update, new Date().toISOString());
+    if (!manualOverride) {
+        console.log(`Setting last processed week to [${week_to_update}]`);
+        updateGameStatesProcessedWeek.run(week_to_update, new Date().toISOString());
+    } else {
+        console.log(`Skipping update to last processed week - update ran with manual override`);
+    }
+}
+
+function updateSleeperWinLossMatrixTable(week_to_update, winLoss) {
+    for (var result of winLoss) {
+        console.log(`Updated WinLoss Matrix outcome for sleeperId [${result.sleeperId}], set to [${result.outcome}] for week [${week_to_update}]`);
+        addOrUpdateSleeperWinLossMatrixEntry.run(result.sleeperId, week_to_update, result.outcome);
+    }
 }
 
 function processSurvivorPool(winLoss, game_states, week_to_update) {
@@ -177,28 +202,35 @@ function getListOfPlayerEmailsFromEntries(filteredEntries) {
     return emailsArray.join(",");
 }
 
-function processPickems(winLoss, week_to_update) {
+function processPickems(winLoss, matchups, week_to_update) {
+    // auto picks assigned, will be added and picked up by pickemsEntriesForWeek right after this.
+    assignAutoPicksForUsers(matchups, week_to_update);
+
+    // get entries for all users for current week
     const pickemsEntriesForWeek = getAllPickemsEntriesForWeek.all(week_to_update);
 
     if (pickemsEntriesForWeek) {
-        console.log(pickemsEntriesForWeek);
+        //console.log(pickemsEntriesForWeek);
 
         // use the matchups array from above to determine outcome for each survivor entry
         let successfulUpdateCount = 0;
         for (var entry of pickemsEntriesForWeek) {
 
             var matchupResult = winLoss.find(obj => obj.sleeperId == entry.choice_sleeper_id);
-            console.log(`Setting pickems outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
             entry.outcome = matchupResult.outcome;
+            console.log(`Setting pickems outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
 
             // get underdog status
-            let isUnderdogPick = determineUnderdog();
+            let isUnderdogPick = determineUnderdog(week_to_update, matchupResult.sleeperId, matchupResult.sleeperId_opponent);
 
             let isDouble = entry.is_double_down;
             let isTriple = entry.is_triple_down;
+            let isAuto = entry.is_auto_pick;
 
             // get score
-            let scoreCalc = calculateScore(matchupResult.outcome, isUnderdogPick, isDouble, isTriple);
+            let scoreCalc = calculateScore(matchupResult.outcome, isUnderdogPick, isDouble, isTriple, isAuto);
+
+            console.log(`\t> underdog? [${isUnderdogPick}] double down? [${isDouble ? 'yes' : 'no'}] triple down? [${isTriple ? 'yes' : 'no'}] AUTO pick? [${isAuto ? 'yes' : 'no'}] score total is ${scoreCalc}!`)
 
             const updateResult = updatePickemsEntryOutcomeAndScore.run(matchupResult.outcome, scoreCalc, entry.owner, entry.week, entry.choice_sleeper_id);
             successfulUpdateCount += updateResult.changes;
@@ -218,15 +250,93 @@ function processPickems(winLoss, week_to_update) {
     }
 }
 
-function determineUnderdog() {
-    //TODO: UPDATE THIS
-    return false;
+// for users actively playing pickems, assign auto picks if they missed any
+function assignAutoPicksForUsers(matchups, week_to_update) {
+    // get list of active users and get all current entries for week
+    const pickemsEntriesForWeekPreAutoAssign = getAllPickemsEntriesForWeek.all(week_to_update);
+    const activeUsers = getActivePickemsUsers.all(); // defined as having one pickems entry != auto
+
+    // create list of what auto picks will automatically be made for everyone who missed one with a list of sleeperIds
+    const autoPicksForWeek = [];
+    for (var matchup of matchups) {
+        const player1 = matchup[0];
+        const player2 = matchup[1];
+        const player1_isUnderdog = determineUnderdog(week_to_update, player1.userId, player2.userId);
+        const player2_isUnderdog = determineUnderdog(week_to_update, player2.userId, player1.userId);
+
+        if (player1_isUnderdog) {
+            autoPicksForWeek.push(player1.userId);
+        } else if (player2_isUnderdog) {
+            autoPicksForWeek.push(player2.userId);
+        } else { // even matchup, assign randomly
+            const randomIndexChoice = Math.round(Math.random());
+            const playerRandom = matchup[randomIndexChoice];
+            console.log("even matchup for auto pick, chose " + randomIndexChoice);
+            autoPicksForWeek.push(playerRandom.userId);
+        }
+    }
+
+    if (autoPicksForWeek.length != EXPECTED_MATCHUPS_PER_WEEK) {
+        console.error("The calculated autopicks array is not equal to the number of matchups for the week");
+        return;
+    }
+
+    const updateTime = new Date().toISOString();
+
+    for (var user of activeUsers) {
+        const email = user.email;
+        const userEntriesForWeek = pickemsEntriesForWeekPreAutoAssign.filter(obj => obj.owner == email);
+        const userRecordCountForThisWeek = userEntriesForWeek.length;
+
+        // user has less than the expected number of pickems entries for this week, assign them auto picks for missing entries
+        if (userRecordCountForThisWeek < EXPECTED_MATCHUPS_PER_WEEK) {
+            console.log(`[${EXPECTED_MATCHUPS_PER_WEEK - userRecordCountForThisWeek}] AUTO picks will be assigned for user ${email}`);
+
+            // Go thru the matchups for this week and one-by-one determine if user made a pick on that matchup
+            // otherwise, assign auto pick
+            for (var matchup of matchups) {
+                const player1 = matchup[0];
+                const player2 = matchup[1];
+
+                // does user have an entry for one of the sleeperIds in this matchup?
+                const matchupEntry = userEntriesForWeek.find(obj => obj.choice_sleeper_id == player1.userId || obj.choice_sleeper_id == player2.userId);
+                if (!matchupEntry) { // if not, assign auto pick for this matchup
+                    const autoPickId = autoPicksForWeek.find(pick => pick == player1.userId || pick == player2.userId);
+                    console.log(`Making AUTO pick of ${autoPickId} for user ${email}`);
+                    createPickemsEntry.run(email, week_to_update, autoPickId, 'AUTO-PICK', 0, 0, 1, updateTime);
+                }
+            }
+        }
+    }
+
 }
 
-function calculateScore(outcome, isUnderdogPick, isDouble, isTriple) {
+function determineUnderdog(week_to_update, choice_sleeper_id, choice_opponent_sleeper_id) {
+    // In week 1, there are no underdogs.
+    if (week_to_update == 1) {
+        return false;
+    }
+    if (!choice_sleeper_id || !choice_opponent_sleeper_id) {
+        console.error(`One of sleeperId or opponent sleeperId was undefined! choice = [${choice_sleeper_id}] opponent = [${choice_opponent_sleeper_id}]`);
+        return false;
+    }
+
+    const choice_wins = getNumberOfWinsForUserUpToWeek.get(choice_sleeper_id, week_to_update).wins;
+    const opponent_wins = getNumberOfWinsForUserUpToWeek.get(choice_opponent_sleeper_id, week_to_update).wins;
+
+    console.log(`choice_wins = ${choice_wins}`);
+    console.log(`opponent_wins = ${opponent_wins}`);
+
+    return choice_wins < opponent_wins;
+}
+
+function calculateScore(outcome, isUnderdogPick, isDouble, isTriple, isAuto) {
     let scoreCalc = 0;
 
     if (outcome == "WIN") {
+        // Auto picks receive no bonuses for underdog scoring
+        if (isAuto) return SCORE_WIN;
+
         if (isUnderdogPick) {
             scoreCalc = SCORE_UNDERDOG_WIN;
         } else {

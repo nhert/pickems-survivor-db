@@ -38,6 +38,7 @@ const resetDb_statements = [
   'DELETE FROM game_states;',
   'DELETE FROM survivor_pool_entry;',
   'DELETE FROM pickems_entry;',
+  'DELETE FROM sleeper_win_loss_matrix;',
   'DELETE FROM users;',
   'INSERT INTO game_states (updated_at) SELECT CURRENT_TIMESTAMP WHERE (SELECT COUNT(*) FROM game_states) = 0;'
 ].map(sql => database.prepare(sql));
@@ -120,8 +121,8 @@ const getSurvivorPoolEntry = database.prepare(`
 
 // create
 const createPickemsEntry = database.prepare(`
-  INSERT INTO pickems_entry (owner, week, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO pickems_entry (owner, week, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down, is_auto_pick, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 // delete
@@ -182,6 +183,41 @@ const getPickemsScores = database.prepare(`
     total_score DESC;
 `);
 
+const getActivePickemsUsers = database.prepare(`
+  SELECT 
+    DISTINCT owner AS email
+  FROM 
+    pickems_entry
+  WHERE 
+    is_auto_pick = 0;
+`);
+
+const addOrUpdateSleeperWinLossMatrixEntry = database.prepare(`
+  INSERT OR REPLACE INTO sleeper_win_loss_matrix (sleeper_id, week, outcome)
+  VALUES (?, ?, ?);
+`);
+
+const getNumberOfWinsForUserUpToWeek = database.prepare(`
+  SELECT
+    COUNT(*) AS wins
+  FROM 
+    sleeper_win_loss_matrix
+  WHERE 
+    sleeper_id = ? AND week < ? AND outcome = 'WIN';
+`);
+
+const getWinTotalsForWeek = database.prepare(`
+  SELECT 	
+    sleeper_id, 
+	  COUNT(*) FILTER (WHERE outcome = 'WIN') AS wins,
+    COUNT(*) FILTER (WHERE outcome = 'LOSS') AS losses,
+    COUNT(*) FILTER (WHERE outcome = 'TIE') AS ties
+  FROM sleeper_win_loss_matrix
+  WHERE week < ?
+  GROUP BY sleeper_id
+  ORDER BY wins DESC;
+`);
+
 export {
   resetDb_statements,
   // generic
@@ -214,5 +250,10 @@ export {
   getAllPickemsEntriesForWeek,
   getAllPickemsEntriesForWeekAndUser,
   getPickemsEntry,
-  getPickemsScores
+  getPickemsScores,
+  getActivePickemsUsers,
+  // pickems win/loss matrix for underdog
+  addOrUpdateSleeperWinLossMatrixEntry,
+  getNumberOfWinsForUserUpToWeek,
+  getWinTotalsForWeek
 };
