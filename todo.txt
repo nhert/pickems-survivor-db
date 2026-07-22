@@ -1,6 +1,5 @@
 - write a cron job to update the win/loss outcome of all survivor pool / pickems each week wednesday@2am by calling cron-jobs\run-update.js which automatically gets the last processed week and generates win/loss
-- write logging so that the execution of cron job / etc is captured for auditing purposes
-- AUTO pick logic
+
 
 logic for pickems
     - scoring: 2 pts for correct pick, 3 pts for underdog pick, 2x score if doubled, 3x score if tripled. if you miss on a double, -2 pts. if triple, -3 pts. incorrect guesses worth 0.

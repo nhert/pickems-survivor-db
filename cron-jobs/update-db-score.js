@@ -1,6 +1,6 @@
 import { getActivePickemsUsers, getNumberOfWinsForUserUpToWeek, addOrUpdateSleeperWinLossMatrixEntry, getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry, getAllPickemsEntriesForWeek, updatePickemsEntryOutcomeAndScore, createPickemsEntry } from '../data/queries.js';
 import { getSleeperMatchupsForWeek } from '../sleeper/sleeper-api.js';
-import { logger } from '../logging.js'
+import { logger } from '../logging/logging.js'
 
 const EXPECTED_MATCHUPS_PER_WEEK = 13;
 
@@ -11,9 +11,11 @@ const SCORE_DOUBLE_DOWN_LOSS = -2;
 const SCORE_TRIPLE_DOWN_LOSS = -3;
 
 // params: boolean, number
-export async function runUpdate(manualOverride, week) {
+export async function runUpdate(manualOverride, forceSurvivorProcessing, week) {
+    printSectionLogMessage("UPDATE-DB-SCORE.JS EXECUTION");
+
     // Need to get the last week we ran the update for. Stored in game_states
-    const game_states = null;
+    const game_states = getGameStates.get();
     if (!game_states) {
         logger.error("Could not find game_states");
         return;
@@ -22,13 +24,12 @@ export async function runUpdate(manualOverride, week) {
     // If running manually with a specific week, run the update for that week. 
     // Otherwise if week is null, get the last processed week from DB and do + 1 to process the latest week.
     const week_to_update = week ?? game_states.last_processed_week + 1;
-    console.log(`Running update-db-score.js for week [${week_to_update}] at ${new Date()}`);
-    logger.info(`Running update-db-score.js for week [${week_to_update}] at ${new Date()}`);
+    logger.info(`Running update-db-score.js for week [${week_to_update}] at ${new Date().toISOString()}`);
     if (week_to_update > 14) {
-        console.warn("Skipping update-db-score.js since week is out of range (>14)");
+        logger.warn("Skipping update-db-score.js since week is out of range (>14)");
         return;
     }
-    console.log(game_states);
+    logger.info(`GameStates = ${JSON.stringify(game_states)}`);
 
     // Need to get all the Pickems entries for the current week 
     // const pickemsEntriesForWeek = ...
@@ -43,47 +44,56 @@ export async function runUpdate(manualOverride, week) {
     ....
     ]
     */
+    logger.info(`Running getSleeperMatchupsForWeek() with week [${week}]`);
     const sleeperMatchupData = await getSleeperMatchupsForWeek(week_to_update);
     if (!sleeperMatchupData || !sleeperMatchupData.winLoss || !sleeperMatchupData.matchups) {
-        console.error("Got a null value while checking sleeper matchups!");
+        logger.error("Got a null value while checking sleeper matchups!");
         return;
     }
+    logger.info(`Found [${sleeperMatchupData.matchups.length}] matchups for this week`);
 
     const winLoss = sleeperMatchupData.winLoss;
     const matchups = sleeperMatchupData.matchups;
-    console.log(winLoss);
-    console.log(matchups);
+    //console.log(winLoss);
+    //console.log(matchups);
 
     // update win-loss matrix table so we can calculate / recalculate underdog status for players for any input week during the season
+    printSectionLogMessage("WIN/LOSS MATRIX UPDATES");
     updateSleeperWinLossMatrixTable(week_to_update, winLoss);
 
     // Logic to update survivor pool entries.
     // Need to get all the Survivor Pool entries for the current week 
-    if (manualOverride || game_states.survivor_pool_outcome == "UNKNOWN") {
+    printSectionLogMessage("SURVIVOR POOL PROCESSING");
+    if (forceSurvivorProcessing || game_states.survivor_pool_outcome == "UNKNOWN") {
+        logger.info("Running survivor pool processing. Forced? = " + forceSurvivorProcessing);
         let succeeded = processSurvivorPool(winLoss, game_states, week_to_update);
         if (!succeeded) {
-            console.error(`Survivor pool processing FAILED for week [${week_to_update}]`);
+            logger.error(`Survivor pool processing FAILED for week [${week_to_update}]`);
         }
+    } else {
+        logger.info("Skipping survivor pool processing, pool is finished");
     }
 
+    printSectionLogMessage("PICKEMS PROCESSING");
     // use the array from above to determine outcome for each pickems entry
     let succeeded = processPickems(winLoss, matchups, week_to_update);
     if (!succeeded) {
-        console.error(`Pickems processing FAILED for week [${week_to_update}]`);
+        logger.error(`Pickems processing FAILED for week [${week_to_update}]`);
     }
 
+    printSectionLogMessage("LAST PROCESSED WEEK");
     // Update game_states last processed week 
     if (!manualOverride) {
-        console.log(`Setting last processed week to [${week_to_update}]`);
+        logger.info(`Setting last processed week to [${week_to_update}]`);
         updateGameStatesProcessedWeek.run(week_to_update, new Date().toISOString());
     } else {
-        console.log(`Skipping update to last processed week - update ran with manual override`);
+        logger.info(`Skipping update to last processed week - update ran with manual override`);
     }
 }
 
 function updateSleeperWinLossMatrixTable(week_to_update, winLoss) {
     for (var result of winLoss) {
-        console.log(`Updated WinLoss Matrix outcome for sleeperId [${result.sleeperId}], set to [${result.outcome}] for week [${week_to_update}]`);
+        logger.info(`Updated WinLoss Matrix outcome for sleeperId [${result.sleeperId}], set to [${result.outcome}] for week [${week_to_update}]`);
         addOrUpdateSleeperWinLossMatrixEntry.run(result.sleeperId, week_to_update, result.outcome);
     }
 }
@@ -91,7 +101,7 @@ function updateSleeperWinLossMatrixTable(week_to_update, winLoss) {
 function processSurvivorPool(winLoss, game_states, week_to_update) {
     const survivorEntriesForWeek = getAllSurvivorPoolEntriesForWeek.all(week_to_update);
     if (survivorEntriesForWeek) {
-        console.log(survivorEntriesForWeek);
+        //console.log(survivorEntriesForWeek);
 
         // use the matchups array from above to determine outcome for each survivor entry
         let successfulUpdateCount = 0;
@@ -102,16 +112,16 @@ function processSurvivorPool(winLoss, game_states, week_to_update) {
                 continue;
             }
             var matchupResult = winLoss.find(obj => obj.sleeperId == entry.choice_sleeper_id);
-            console.log(`Setting survivor pool outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
+            logger.info(`Setting survivor pool outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
             entry.outcome = matchupResult.outcome;
             const updateResult = updateSurvivorPoolEntryOutcome.run(matchupResult.outcome, entry.owner, entry.week);
             successfulUpdateCount += updateResult.changes;
         }
 
         const countOfNonMissedEntries = survivorEntriesForWeek.filter(entry => entry.outcome != "MISSED").length;
-        console.log(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countOfNonMissedEntries}]`);
+        logger.info(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countOfNonMissedEntries}]`);
         if (countOfNonMissedEntries != successfulUpdateCount) {
-            console.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
+            logger.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
             return false;
         }
 
@@ -119,7 +129,7 @@ function processSurvivorPool(winLoss, game_states, week_to_update) {
         determineSurvivorPoolGameEndState(survivorEntriesForWeek, week_to_update, game_states);
         return true;
     } else {
-        console.error(`Could not find any survivor entries for week ${week_to_update}`);
+        logger.error(`Could not find any survivor entries for week ${week_to_update}`);
         return false;
     }
 }
@@ -128,16 +138,16 @@ function processSurvivorPool(winLoss, game_states, week_to_update) {
 // If a user misses the week 1 submission, they will be appropriately blocked in the UI from making any future submissions already.
 function checkForMissedEntries(survivorEntriesForWeek, week_to_update, game_states) {
     if (week_to_update == 1) {
-        console.warn(`Skipping checkForMissedEntries processing since it is week 1`);
+        logger.warn(`Skipping checkForMissedEntries processing since it is week 1`);
         return;
     }
-    console.log(`Running checkForMissedEntries for week [${week_to_update}]`);
+    logger.info(`Running checkForMissedEntries for week [${week_to_update}]`);
 
     // step 1 get list of emails who were not eliminated last week (they should be making an entry this week)
     const lastWeek = (+week_to_update) - 1;
     const survivorEntriesForLastWeek = getAllSurvivorPoolEntriesForWeek.all(lastWeek);
     if (!survivorEntriesForLastWeek) {
-        console.error(`Skipping checkForMissedEntries processing since last weeks entries could not be found`);
+        logger.error(`Skipping checkForMissedEntries processing since last weeks entries could not be found`);
         return;
     }
     const winnersLastWeekEmailsArray = survivorEntriesForLastWeek.filter(obj => obj.outcome == "WIN" || obj.outcome == "TIE").map(entry => entry.owner);
@@ -147,12 +157,11 @@ function checkForMissedEntries(survivorEntriesForWeek, week_to_update, game_stat
     const missingEmails = winnersLastWeekEmailsArray.filter(item => !submissionsThisWeekEmailsArray.includes(item));
 
     if (missingEmails.length > 0) {
-        console.log(`Found players with missing submissions this week ${missingEmails}`);
-        console.log(missingEmails);
+        logger.info(`Found players with missing submissions this week ${missingEmails}`);
     }
 
     for (var email of missingEmails) {
-        console.log(`Setting outcome for ${email} for week ${week_to_update} to [MISSED]! Shame!`);
+        logger.info(`Setting outcome for ${email} for week ${week_to_update} to [MISSED]! Shame!`);
         createMissedSurvivorPoolEntry.run(email, week_to_update, new Date().toISOString());
     }
 }
@@ -164,31 +173,31 @@ function determineSurvivorPoolGameEndState(entries, week, game_states) {
     const numWinners = winningEntries.length;
 
     if (unknownEntries.length > 0) {
-        console.error("Trying to run determineSurvivorPoolGameEndState on entries that have UNKNOWN outcome.");
+        logger.error("Trying to run determineSurvivorPoolGameEndState on entries that have UNKNOWN outcome.");
         return;
     }
 
-    console.log(`There were [${numWinners}] winners in survivor pool this week`);
+    logger.info(`There were [${numWinners}] winners in survivor pool this week`);
 
     const winners = getListOfPlayerEmailsFromEntries(winningEntries);
     const losers = getListOfPlayerEmailsFromEntries(losingEntries);
 
     if (numWinners == 1) { // game over, someone won
         updateGameStatesSurvivorFinished.run("WON", winners, week, new Date().toISOString());
-        console.log(`Survivor Pool has been won by one person! Congratulations, ${winners}`);
+        logger.info(`Survivor Pool has been won by one person! Congratulations, ${winners}`);
     } else if (numWinners == 0) { // game over, it was a tie between multiple people who got eliminated at once
         updateGameStatesSurvivorFinished.run("TIE", losers, week, new Date().toISOString());
-        console.log(`Survivor Pool has been tied by ${losingEntries.length} people! Congratulations, ${losers}`);
+        logger.info(`Survivor Pool has been tied by ${losingEntries.length} people! Congratulations, ${losers}`);
     } else if (week == 14) { // Reached end of season, and more than 1 person won week 14. Winners all tie.
         updateGameStatesSurvivorFinished.run("TIE", winners, week, new Date().toISOString());
-        console.log(`Survivor Pool has reached end of week 14 with multiple winners! Congratulations, ${winners}`);
+        logger.info(`Survivor Pool has reached end of week 14 with multiple winners! Congratulations, ${winners}`);
     } else { // otherwise, the game continues
         if (game_states.survivor_pool_outcome != "UNKNOWN") {
             // In the case where something goes wrong and breaks game state, need to allow it to reset back to UNKNOWN on manual run.
             updateGameStatesSurvivorFinished.run("UNKNOWN", null, null, new Date().toISOString());
-            console.log("Survivor Pool game state has been reset to UNKNOWN");
+            logger.info("Survivor Pool game state has been reset to UNKNOWN");
         } else {
-            console.log(`Game outcome of Survivor Pool is still UNKNOWN`);
+            logger.info(`Game outcome of Survivor Pool is still UNKNOWN`);
         }
     }
 }
@@ -209,6 +218,9 @@ function processPickems(winLoss, matchups, week_to_update) {
     // get entries for all users for current week
     const pickemsEntriesForWeek = getAllPickemsEntriesForWeek.all(week_to_update);
 
+    // sort entries so that the appear in a nice order for logging / auditing.
+    pickemsEntriesForWeek.sort((a, b) => a.owner.localeCompare(b.owner));
+
     if (pickemsEntriesForWeek) {
         //console.log(pickemsEntriesForWeek);
 
@@ -218,7 +230,7 @@ function processPickems(winLoss, matchups, week_to_update) {
 
             var matchupResult = winLoss.find(obj => obj.sleeperId == entry.choice_sleeper_id);
             entry.outcome = matchupResult.outcome;
-            console.log(`Setting pickems outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
+            logger.info(`Setting pickems outcome for ${entry.owner} for week ${week_to_update} to [${matchupResult.outcome}]`);
 
             // get underdog status
             let isUnderdogPick = determineUnderdog(week_to_update, matchupResult.sleeperId, matchupResult.sleeperId_opponent);
@@ -230,22 +242,22 @@ function processPickems(winLoss, matchups, week_to_update) {
             // get score
             let scoreCalc = calculateScore(matchupResult.outcome, isUnderdogPick, isDouble, isTriple, isAuto);
 
-            console.log(`\t> underdog? [${isUnderdogPick}] double down? [${isDouble ? 'yes' : 'no'}] triple down? [${isTriple ? 'yes' : 'no'}] AUTO pick? [${isAuto ? 'yes' : 'no'}] score total is ${scoreCalc}!`)
+            logger.info(`\t> underdog? [${isUnderdogPick}] double down? [${isDouble ? 'yes' : 'no'}] triple down? [${isTriple ? 'yes' : 'no'}] AUTO pick? [${isAuto ? 'yes' : 'no'}] score total is ${scoreCalc}!`)
 
             const updateResult = updatePickemsEntryOutcomeAndScore.run(matchupResult.outcome, scoreCalc, entry.owner, entry.week, entry.choice_sleeper_id);
             successfulUpdateCount += updateResult.changes;
         }
 
         const countEntries = pickemsEntriesForWeek.length;
-        console.log(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countEntries}]`);
+        logger.info(`[${successfulUpdateCount}] rows successfully updated for entry count of [${countEntries}]`);
         if (countEntries != successfulUpdateCount) {
-            console.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
+            logger.error("Mismatch between number of successful row updates and number of entries to update - script needs to be run again");
             return false;
         }
 
         return true;
     } else {
-        console.error(`Could not find any pickems entries for week ${week_to_update}`);
+        logger.error(`Could not find any pickems entries for week ${week_to_update}`);
         return false;
     }
 }
@@ -271,13 +283,13 @@ function assignAutoPicksForUsers(matchups, week_to_update) {
         } else { // even matchup, assign randomly
             const randomIndexChoice = Math.round(Math.random());
             const playerRandom = matchup[randomIndexChoice];
-            console.log("even matchup for auto pick, chose " + randomIndexChoice);
+            //console.log("even matchup for auto pick, chose " + randomIndexChoice);
             autoPicksForWeek.push(playerRandom.userId);
         }
     }
 
     if (autoPicksForWeek.length != EXPECTED_MATCHUPS_PER_WEEK) {
-        console.error("The calculated autopicks array is not equal to the number of matchups for the week");
+        logger.error("The calculated autopicks array is not equal to the number of matchups for the week");
         return;
     }
 
@@ -290,7 +302,7 @@ function assignAutoPicksForUsers(matchups, week_to_update) {
 
         // user has less than the expected number of pickems entries for this week, assign them auto picks for missing entries
         if (userRecordCountForThisWeek < EXPECTED_MATCHUPS_PER_WEEK) {
-            console.log(`[${EXPECTED_MATCHUPS_PER_WEEK - userRecordCountForThisWeek}] AUTO picks will be assigned for user ${email}`);
+            logger.info(`[${EXPECTED_MATCHUPS_PER_WEEK - userRecordCountForThisWeek}] AUTO picks will be assigned for user ${email}`);
 
             // Go thru the matchups for this week and one-by-one determine if user made a pick on that matchup
             // otherwise, assign auto pick
@@ -302,7 +314,7 @@ function assignAutoPicksForUsers(matchups, week_to_update) {
                 const matchupEntry = userEntriesForWeek.find(obj => obj.choice_sleeper_id == player1.userId || obj.choice_sleeper_id == player2.userId);
                 if (!matchupEntry) { // if not, assign auto pick for this matchup
                     const autoPickId = autoPicksForWeek.find(pick => pick == player1.userId || pick == player2.userId);
-                    console.log(`Making AUTO pick of ${autoPickId} for user ${email}`);
+                    logger.info(`Making AUTO pick of ${autoPickId} for user ${email}`);
                     createPickemsEntry.run(email, week_to_update, autoPickId, 'AUTO-PICK', 0, 0, 1, updateTime);
                 }
             }
@@ -317,15 +329,15 @@ function determineUnderdog(week_to_update, choice_sleeper_id, choice_opponent_sl
         return false;
     }
     if (!choice_sleeper_id || !choice_opponent_sleeper_id) {
-        console.error(`One of sleeperId or opponent sleeperId was undefined! choice = [${choice_sleeper_id}] opponent = [${choice_opponent_sleeper_id}]`);
+        logger.error(`One of sleeperId or opponent sleeperId was undefined! choice = [${choice_sleeper_id}] opponent = [${choice_opponent_sleeper_id}]`);
         return false;
     }
 
     const choice_wins = getNumberOfWinsForUserUpToWeek.get(choice_sleeper_id, week_to_update).wins;
     const opponent_wins = getNumberOfWinsForUserUpToWeek.get(choice_opponent_sleeper_id, week_to_update).wins;
 
-    console.log(`choice_wins = ${choice_wins}`);
-    console.log(`opponent_wins = ${opponent_wins}`);
+    //console.log(`choice_wins = ${choice_wins}`);
+    //console.log(`opponent_wins = ${opponent_wins}`);
 
     return choice_wins < opponent_wins;
 }
@@ -362,4 +374,10 @@ function calculateBonuses(score, isDouble, isTriple) {
     } else {
         return +score;
     }
+}
+
+function printSectionLogMessage(msg) {
+    logger.info("");
+    logger.info(`==================== ${msg} ====================`);
+    logger.info("");
 }

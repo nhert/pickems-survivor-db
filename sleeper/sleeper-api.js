@@ -18,7 +18,6 @@ export async function getSleeperMatchupsForWeek(week) {
         console.error("Week must be provided to getSleeperMatchupsForWeek()");
         return null;
     }
-    console.log(`Running getSleeperMatchupsForWeek() with week [${week}]`);
 
     var resultingWinLossMap = [];
     var resultingMatchups = [];

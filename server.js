@@ -7,9 +7,13 @@ import survivorPoolRouter from './routes/survivor_pool.router.js';
 import genericRouter from './routes/generic.router.js';
 import demoRouter from './routes/demo.router.js';
 import pickemsRouter from './routes/pickems.router.js';
+import { httpLogger } from './logging/requestLoggingHandler.js'
 
 const PORT = 5000;
 const app = express();
+
+// Log all traffic in the requests.log file
+app.use(httpLogger);
 
 // node.js express features
 app.use(express.json()); // Parses incoming JSON payloads
