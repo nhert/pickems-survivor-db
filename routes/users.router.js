@@ -1,6 +1,6 @@
 // routes/users.router.js
 import express from 'express';
-import { createUser, getAllUsers, getUserByEmail, updateUsername } from '../data/queries.js';
+import { createUser, getActivePickemsUsers, getAllUsers, getUserByEmail, updateUsername } from '../data/queries.js';
 
 const usersRouter = express.Router();
 
@@ -67,12 +67,17 @@ usersRouter.get('/get/:email', (req, res) => {
 
 usersRouter.get('/all', (req, res) => {
     const recordedUsers = getAllUsers.all();
-    return res.status(200).json(
-        recordedUsers.map(({ user_email, username }) => ({
+    const activePickemsEmails = getActivePickemsUsers.all();
+
+    return res.status(200).json({
+        gameUsers: recordedUsers.map(({ user_email, username }) => ({
             user_email: user_email,
             username: username
+        })),
+        activeUsers: activePickemsEmails.map(({ email }) => ({
+            user_email: email
         }))
-    );
+    });
 });
 
 usersRouter.get('/usernames', (req, res) => {
@@ -82,7 +87,7 @@ usersRouter.get('/usernames', (req, res) => {
     );
 });
 
-usersRouter.put('/update/:email', (req, res) => {
+usersRouter.post('/update/:email', (req, res) => {
     const email = req.params.email;
     const { username } = req.body;
     const recordedUser = getUserByEmail.get(email);
