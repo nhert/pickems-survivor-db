@@ -1,9 +1,4 @@
-- write a cron job to update the win/loss outcome of all survivor pool / pickems each week wednesday@2am by calling cron-jobs\run-update.js which automatically gets the last processed week and generates win/loss
+- write a cron job to update the win/loss outcome of all survivor pool / pickems each week tues@23:50:00 (10min before midnight) by calling cron-jobs\run-update.js
 
 - if scores are reprocessed, do the autopicks that are random get recalculated? 
 - limitation: if scores are reprocessed for a past week, users who missed picks could have autos assigned (they werent active user that week)
-
-logic for pickems
-    - scoring: 2 pts for correct pick, 3 pts for underdog pick, 2x score if doubled, 3x score if tripled. if you miss on a double, -2 pts. if triple, -3 pts. incorrect guesses worth 0.
-    - rules: make one pick from each matchup each week. Receive one double and triple to play each week. If you miss deadline, you are assigned all underdog picks for this week at week end and receive no bonuses.
-    - only display underdog status for the current week and the past. cant project past that
