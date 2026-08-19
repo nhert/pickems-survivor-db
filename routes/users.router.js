@@ -70,9 +70,10 @@ usersRouter.get('/all', (req, res) => {
     const activePickemsEmails = getActivePickemsUsers.all();
 
     return res.status(200).json({
-        gameUsers: recordedUsers.map(({ user_email, username }) => ({
+        gameUsers: recordedUsers.map(({ user_email, username, avatar_url }) => ({
             user_email: user_email,
-            username: username
+            username: username,
+            avatar_url: avatar_url
         })),
         activeUsers: activePickemsEmails.map(({ email }) => ({
             user_email: email

@@ -5,6 +5,7 @@ const database = new DatabaseSync(`${import.meta.dirname}/main.db`);
 const initDatabase = `
 CREATE TABLE IF NOT EXISTS users (
     user_email TEXT PRIMARY KEY,
+    avatar_url TEXT,
     username TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

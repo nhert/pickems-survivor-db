@@ -2,3 +2,4 @@
 
 - if scores are reprocessed, do the autopicks that are random get recalculated? 
 - limitation: if scores are reprocessed for a past week, users who missed picks could have autos assigned (they werent active user that week)
+

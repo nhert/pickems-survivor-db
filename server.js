@@ -8,6 +8,7 @@ import genericRouter from './routes/generic.router.js';
 import demoRouter from './routes/demo.router.js';
 import pickemsRouter from './routes/pickems.router.js';
 import { httpLogger } from './logging/requestLoggingHandler.js'
+import { updateAvatarUrl } from './data/queries.js';
 // image upload related
 import path from 'node:path';
 import multer from 'multer';
@@ -82,12 +83,15 @@ app.post('/api/upload_avatar/:email', upload.single('image'), async (req, res) =
             }) // Convert & optimize to PNG format
             .toFile(outputPath);
 
+        const avatarUrl = `/avatars/${finalFilename}`;
+        updateAvatarUrl.run(avatarUrl, email);
+
         res.status(200).json({
             message: 'Avatar saved successfully!'
         });
     } catch (error) {
         console.error(error);
-        res.status(500).send('Server error while processing image');
+        res.status(500).send('Server error while processing avatar');
     }
 });
 
