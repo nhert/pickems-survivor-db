@@ -198,17 +198,17 @@ const USERS = [
 ]
 
 const sampleUsers = [
-    { email: 'testuser1@b3fl.com', username: 'bot1' },
-    { email: 'testuser2@b3fl.com', username: 'bot2' },
-    { email: 'testuser3@b3fl.com', username: 'bot3' },
-    { email: 'testuser4@b3fl.com', username: 'bot4' },
-    { email: 'testuser5@b3fl.com', username: 'bot5' },
-    { email: 'testuser6@b3fl.com', username: 'bot6' },
-    { email: 'testuser7@b3fl.com', username: 'bot7' },
-    { email: 'testuser8@b3fl.com', username: 'bot8' },
-    { email: 'testuser9@b3fl.com', username: 'bot9' },
-    { email: 'dummy.user.test@com.com', username: 'dummy' },
-    { email: 'dummy.user.test2@com.com', username: 'dummy2' },
+    { email: 'testuser1@b3fl.com', username: 'DemoBot-1' },
+    { email: 'testuser2@b3fl.com', username: 'DemoBot-2' },
+    { email: 'testuser3@b3fl.com', username: 'DemoBot-3' },
+    { email: 'testuser4@b3fl.com', username: 'DemoBot-4' },
+    { email: 'testuser5@b3fl.com', username: 'DemoBot-5' },
+    { email: 'testuser6@b3fl.com', username: 'DemoBot-6' },
+    { email: 'testuser7@b3fl.com', username: 'DemoBot-7' },
+    { email: 'testuser8@b3fl.com', username: 'DemoBot-8' },
+    { email: 'testuser9@b3fl.com', username: 'DemoBot-9' },
+    { email: 'dummy.user.test@com.com', username: 'DemoBot-Prime' },
+    { email: 'dummy.user.test2@com.com', username: 'DemoBot-Beta' },
 ]
 
 export function genSamples() {
