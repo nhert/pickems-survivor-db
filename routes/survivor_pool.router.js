@@ -3,34 +3,6 @@ import { createSurvivorPoolEntry, getAllSurvivorPoolChoicesForUser, getAllSurviv
 
 const survivorPoolRouter = express.Router();
 
-// .../api/survivor_pool/
-// survivorPoolRouter.post('/add', (req, res) => {
-//     const { email, week, choice_sleeper_id, choice_gm_name } = req.body;
-
-//     // Minimal Input Validation
-//     if (!email || !week || !choice_sleeper_id || !choice_gm_name) {
-//         return res.status(400).json({ error: 'Missing parameters' });
-//     }
-
-//     const recordedEntry = getSurvivorPoolEntry.get(email, week);
-//     const recordedUser = getUserByEmail.get(email);
-
-//     // User already exists, do not create new
-//     if (recordedEntry)
-//         return res.status(400).json({ error: 'Survivor Pool entry for email+week already exists' });
-//     if (!recordedUser)
-//         return res.status(400).json({ error: 'User does not exist' });
-
-//     const updateTime = new Date().toISOString();
-//     const newEntry = createSurvivorPoolEntry.run(email, week, choice_sleeper_id, choice_gm_name, updateTime);
-
-//     return res
-//         .status(201)
-//         .json({
-//             message: 'User Survivor Pool Entry successfully created'
-//         });
-// });
-
 // will either create or update based on existing records
 survivorPoolRouter.post('/update/:email/:week', (req, res) => {
     const email = req.params.email;

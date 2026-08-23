@@ -39,7 +39,6 @@ const resetDb_statements = [
   'DELETE FROM survivor_pool_entry;',
   'DELETE FROM pickems_entry;',
   'DELETE FROM sleeper_win_loss_matrix;',
-  'DELETE FROM users;',
   'INSERT INTO game_states (updated_at) SELECT CURRENT_TIMESTAMP WHERE (SELECT COUNT(*) FROM game_states) = 0;'
 ].map(sql => database.prepare(sql));
 

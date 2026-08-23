@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS survivor_pool_entry (
     -- Missed means the user missed the deadline for an entry
     -- Unknown assigned to incomplete weeks (UI loads sleeper score live)
     -- This value is only ever set by Cron Job scripts / manually triggered scripts
-    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'MISSED', 'UNKNOWN')),
+    outcome TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK(outcome IN ('WIN', 'LOSS', 'TIE', 'MISSED', 'UNKNOWN', 'BUYBACK')),
 
     -- useful date records for auditing
     updated_at TEXT NOT NULL,
