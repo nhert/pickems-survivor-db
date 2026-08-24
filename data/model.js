@@ -97,6 +97,9 @@ CREATE TABLE IF NOT EXISTS pickems_entry (
     -- week can be a value from 1-14 (pickems ends before the fantasy playoffs)
     week INTEGER NOT NULL,
 
+    -- verifies that users cannot submit both players in a single matchup as entries
+    matchup_id TEXT NOT NULL,
+
     -- Sleeper ID of the GM that was chosen for this weeks survivor pool. Used to match results from sleepers API to check win/loss.
     choice_sleeper_id TEXT NOT NULL,
 
@@ -125,7 +128,7 @@ CREATE TABLE IF NOT EXISTS pickems_entry (
     updated_at TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    PRIMARY KEY (owner, week, choice_sleeper_id),
+    PRIMARY KEY (owner, week, matchup_id),
     FOREIGN KEY (owner) REFERENCES users (user_email)
 );
 `;

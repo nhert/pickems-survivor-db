@@ -1,5 +1,5 @@
 import express from 'express';
-import { getWinTotalsForWeek, getAllPickemsEntries, getAllPickemsEntriesForWeek, getPickemsEntry, deletePickemsEntry, createPickemsEntry, getPickemsScores } from '../data/queries.js';
+import { getWinTotalsForWeek, getPickemsMatchupExists, getAllPickemsEntriesForWeek, getPickemsEntry, deletePickemsEntry, createPickemsEntry, getPickemsScores } from '../data/queries.js';
 
 const pickemsRouter = express.Router();
 
@@ -61,19 +61,25 @@ pickemsRouter.post('/make_pick/:email/:week', (req, res) => {
     // If existing sleeperid is provided in the request body, delete it before adding
     const email = req.params.email;
     const week = req.params.week;
-    const { choice_sleeper_id, choice_gm_name } = req.body;
+    const { matchup_id, choice_sleeper_id, choice_gm_name } = req.body;
 
     if (!email || !week) {
         return res.status(400).json({ error: 'Missing parameters' });
     }
-    if (!choice_sleeper_id || !choice_gm_name) {
+    if (!matchup_id || !choice_sleeper_id || !choice_gm_name) {
         return res.status(400).json({ error: 'Missing request body' });
+    }
+
+    // did user already submit a pick for that matchup
+    const matchupEntryExists = getPickemsMatchupExists.get(email, week, matchup_id);
+    if (matchupEntryExists) {
+        return res.status(400).json({ error: 'Already picked in this matchup' });
     }
 
     const updateTime = new Date().toISOString();
 
     // add new entry
-    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, 0, 0, 0, updateTime);
+    createPickemsEntry.run(email, week, matchup_id, choice_sleeper_id, choice_gm_name, 0, 0, 0, updateTime);
     return res.status(200).json({
         message: 'User Pickems Entry successfully updated'
     });
@@ -82,7 +88,7 @@ pickemsRouter.post('/make_pick/:email/:week', (req, res) => {
 pickemsRouter.post('/make_bonus_pick/:email/:week', (req, res) => {
     const email = req.params.email;
     const week = req.params.week;
-    const { choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down } = req.body;
+    const { matchup_id, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down } = req.body;
 
     if (!email || !week) {
         return res.status(400).json({ error: 'Missing parameters' });
@@ -90,13 +96,19 @@ pickemsRouter.post('/make_bonus_pick/:email/:week', (req, res) => {
     if (!("is_double_down" in req.body) || !("is_triple_down" in req.body)) {
         return res.status(400).json({ error: 'Missing request body for double/triple' });
     }
-    if (!choice_sleeper_id || !choice_gm_name) {
+    if (!matchup_id || !choice_sleeper_id || !choice_gm_name) {
         return res.status(400).json({ error: 'Missing request body for sleeperId/gmName' });
+    }
+
+    // did user already submit a pick for that matchup
+    const matchupEntryExists = getPickemsMatchupExists.get(email, week, matchup_id);
+    if (matchupEntryExists) {
+        return res.status(400).json({ error: 'Already picked in this matchup' });
     }
 
     const updateTime = new Date().toISOString();
 
-    createPickemsEntry.run(email, week, choice_sleeper_id, choice_gm_name, is_double_down ? 1 : 0, is_triple_down ? 1 : 0, 0, updateTime);
+    createPickemsEntry.run(email, week, matchup_id, choice_sleeper_id, choice_gm_name, is_double_down ? 1 : 0, is_triple_down ? 1 : 0, 0, updateTime);
     return res.status(200).json({
         message: 'User Pickems Entry Bonuses successfully updated'
     });

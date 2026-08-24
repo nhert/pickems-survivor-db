@@ -306,6 +306,7 @@ function assignAutoPicksForUsers(matchups, week_to_update) {
 
             // Go thru the matchups for this week and one-by-one determine if user made a pick on that matchup
             // otherwise, assign auto pick
+            let matchupIndex = 1;
             for (var matchup of matchups) {
                 const player1 = matchup[0];
                 const player2 = matchup[1];
@@ -315,7 +316,9 @@ function assignAutoPicksForUsers(matchups, week_to_update) {
                 if (!matchupEntry) { // if not, assign auto pick for this matchup
                     const autoPickId = autoPicksForWeek.find(pick => pick == player1.userId || pick == player2.userId);
                     logger.info(`Making AUTO pick of ${autoPickId} for user ${email}`);
-                    createPickemsEntry.run(email, week_to_update, autoPickId, 'AUTO-PICK', 0, 0, 1, updateTime);
+                    const matchupId = "AUTO-MATCHUP-" + matchupIndex;
+                    matchupIndex++;
+                    createPickemsEntry.run(email, week_to_update, matchupId, autoPickId, 'AUTO-PICK', 0, 0, 1, updateTime);
                 }
             }
         }

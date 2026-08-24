@@ -318,7 +318,10 @@ function sampleSurvivorPoolEntry(email, week, sleeperid) {
     createSurvivorPoolEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, new Date().toISOString());
 }
 
+let sampleIndex = 0;
 function samplePickemsEntry(email, week, sleeperid, isDouble = 0, isTriple = 0) {
     console.log(`Making Pickems Entry ${email} ${week} choice: ${sleeperid}`);
-    createPickemsEntry.run(email, week, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, isDouble, isTriple, 0, new Date().toISOString());
+    const matchupid = "SAMPLE-MATCHUP-" + sampleIndex;
+    sampleIndex++;
+    createPickemsEntry.run(email, week, matchupid, sleeperid, USERS.find(user => user.sleeperId_current == sleeperid).name, isDouble, isTriple, 0, new Date().toISOString());
 }

@@ -131,8 +131,8 @@ const getSurvivorPoolEntry = database.prepare(`
 
 // create
 const createPickemsEntry = database.prepare(`
-  INSERT INTO pickems_entry (owner, week, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down, is_auto_pick, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO pickems_entry (owner, week, matchup_id, choice_sleeper_id, choice_gm_name, is_double_down, is_triple_down, is_auto_pick, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 // delete
@@ -179,6 +179,12 @@ const getPickemsEntry = database.prepare(`
   SELECT * 
   FROM pickems_entry
   WHERE owner = ? AND week = ? AND choice_sleeper_id = ?
+`);
+
+const getPickemsMatchupExists = database.prepare(`
+  SELECT * 
+  FROM pickems_entry
+  WHERE owner = ? AND week = ? AND matchup_id = ?
 `);
 
 const getPickemsScores = database.prepare(`
@@ -262,6 +268,7 @@ export {
   getAllPickemsEntriesForWeek,
   getAllPickemsEntriesForWeekAndUser,
   getPickemsEntry,
+  getPickemsMatchupExists,
   getPickemsScores,
   getActivePickemsUsers,
   // pickems win/loss matrix for underdog
