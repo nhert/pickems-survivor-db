@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_email TEXT PRIMARY KEY,
     avatar_url TEXT,
     username TEXT NOT NULL,
+    is_demo_user BOOLEAN NOT NULL DEFAULT FALSE CHECK (is_demo_user IN (0, 1)), 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

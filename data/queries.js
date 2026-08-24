@@ -49,6 +49,11 @@ const createUser = database.prepare(`
   VALUES (?, ?)
 `);
 
+const createDemoUser = database.prepare(`
+  INSERT INTO users (user_email, username, is_demo_user)
+  VALUES (?, ?, 1)
+`);
+
 const updateUsername = database.prepare(`
   UPDATE users
   SET username = ?
@@ -68,7 +73,7 @@ const getUserByEmail = database.prepare(`
 `);
 
 const getAllUsers = database.prepare(`
-  SELECT user_email, username, avatar_url 
+  SELECT *
   FROM users
 `);
 
@@ -234,6 +239,7 @@ export {
   updateGameStatesSurvivorFinished,
   //users
   createUser,
+  createDemoUser,
   updateAvatarUrl,
   updateUsername,
   getUserByEmail,

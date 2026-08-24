@@ -1,6 +1,6 @@
 // Populates the db with some test data.
 
-import { createUser, createSurvivorPoolEntry, createPickemsEntry, getUserByEmail } from '../data/queries.js';
+import { createDemoUser, createSurvivorPoolEntry, createPickemsEntry, getUserByEmail } from '../data/queries.js';
 
 const A_LEAGUE_NAME = "A League";
 const B_LEAGUE_NAME = "B League";
@@ -217,7 +217,7 @@ export function genSamples() {
         console.log("creating user: " + element.email);
         const recordedUser = getUserByEmail.get(element.email);
         if (!recordedUser)
-            createUser.run(element.email, element.username);
+            createDemoUser.run(element.email, element.username);
     });
 
     // Create sample survivor pool entries
