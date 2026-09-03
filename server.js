@@ -33,20 +33,6 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
 
-// Configure Multer disk storage
-// const storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//         cb(null, 'avatar_uploads/');
-//     },
-//     filename: (req, file, cb) => {
-//         const defaultName = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//         const customName = req.params.email || defaultName;
-//         const ext = path.extname(file.originalname);
-
-//         cb(null, `${customName}${ext}`);
-//     }
-// });
-
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // Limit to 5MB

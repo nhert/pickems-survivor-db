@@ -1,6 +1,9 @@
 import { getActivePickemsUsers, getNumberOfWinsForUserUpToWeek, addOrUpdateSleeperWinLossMatrixEntry, getAllSurvivorPoolEntriesForWeek, getGameStates, updateSurvivorPoolEntryOutcome, updateGameStatesProcessedWeek, updateGameStatesSurvivorFinished, createSurvivorPoolEntry, createMissedSurvivorPoolEntry, getAllPickemsEntriesForWeek, updatePickemsEntryOutcomeAndScore, createPickemsEntry } from '../data/queries.js';
 import { getSleeperMatchupsForWeek } from '../sleeper/sleeper-api.js';
 import { logger } from '../logging/logging.js'
+import path from 'node:path';
+import * as fs from 'node:fs';
+import fastcsv from 'fast-csv';
 
 const EXPECTED_MATCHUPS_PER_WEEK = 13;
 
@@ -9,6 +12,9 @@ const SCORE_UNDERDOG_WIN = 3;
 
 const SCORE_DOUBLE_DOWN_LOSS = -2;
 const SCORE_TRIPLE_DOWN_LOSS = -3;
+
+const projectRootDir = path.resolve(import.meta.dirname, '../');
+const backupsDir = path.join(projectRootDir, 'entry_backups');
 
 // params: boolean, number
 export async function runUpdate(manualOverride, forceSurvivorProcessing, week) {
@@ -30,9 +36,6 @@ export async function runUpdate(manualOverride, forceSurvivorProcessing, week) {
         return;
     }
     logger.info(`GameStates = ${JSON.stringify(game_states)}`);
-
-    // Need to get all the Pickems entries for the current week 
-    // const pickemsEntriesForWeek = ...
 
     // Get all matchups from the current sleeper week to determine w/l for each gm
     // builds an array of json with properties: sleeperId, outcome
@@ -91,6 +94,42 @@ export async function runUpdate(manualOverride, forceSurvivorProcessing, week) {
     }
 }
 
+function checkBackupsDirExists() {
+    // Create directory for backups generated during entry processing on tuesdays
+    if (!fs.existsSync(backupsDir)) {
+        fs.mkdirSync(backupsDir);
+    }
+}
+
+function backupEntriesForWeek(week, entriesForWeekPreProcessing, filePrefix) {
+    try {
+        checkBackupsDirExists();
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filePath = path.join(backupsDir, `${filePrefix}_entries_backup_week${week}_${timestamp}.csv`);
+
+        // Create a write stream pointing to the local file path
+        const fileStream = fs.createWriteStream(filePath);
+        const csvStream = fastcsv.format({ headers: true });
+        csvStream.pipe(fileStream);
+
+        // Iterate through the array of records and write them to the stream
+        for (const record of entriesForWeekPreProcessing) {
+            csvStream.write(record);
+        }
+
+        // Complete writing the file to disk
+        csvStream.end();
+
+        // Listen for the finish event to ensure filesystem flush before responding
+        fileStream.on('finish', () => {
+            logger.info(`${filePrefix} backup successfully saved locally to: ${filePath}`);
+        });
+    } catch (error) {
+        logger.error(`${filePrefix} backup failed due to error:`, error);
+    }
+}
+
 function updateSleeperWinLossMatrixTable(week_to_update, winLoss) {
     for (var result of winLoss) {
         logger.info(`Updated WinLoss Matrix outcome for sleeperId [${result.sleeperId}], set to [${result.outcome}] for week [${week_to_update}]`);
@@ -102,6 +141,7 @@ function processSurvivorPool(winLoss, game_states, week_to_update) {
     const survivorEntriesForWeek = getAllSurvivorPoolEntriesForWeek.all(week_to_update);
     if (survivorEntriesForWeek) {
         //console.log(survivorEntriesForWeek);
+        backupEntriesForWeek(week_to_update, survivorEntriesForWeek, 'survivor');
 
         // use the matchups array from above to determine outcome for each survivor entry
         let successfulUpdateCount = 0;
@@ -212,6 +252,9 @@ function getListOfPlayerEmailsFromEntries(filteredEntries) {
 }
 
 function processPickems(winLoss, matchups, week_to_update) {
+    const pickemsEntriesBeforeProcessing = getAllPickemsEntriesForWeek.all(week_to_update);
+    backupEntriesForWeek(week_to_update, pickemsEntriesBeforeProcessing, 'pickems');
+
     // auto picks assigned, will be added and picked up by pickemsEntriesForWeek right after this.
     assignAutoPicksForUsers(matchups, week_to_update);
 
