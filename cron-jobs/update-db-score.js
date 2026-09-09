@@ -5,7 +5,7 @@ import path from 'node:path';
 import * as fs from 'node:fs';
 import fastcsv from 'fast-csv';
 
-const EXPECTED_MATCHUPS_PER_WEEK = 13;
+const EXPECTED_MATCHUPS_PER_WEEK = 14;
 
 const SCORE_WIN = 2;
 const SCORE_UNDERDOG_WIN = 3;
