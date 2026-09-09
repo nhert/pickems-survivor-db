@@ -88,7 +88,7 @@ app.use('/api/survivor_pool', survivorPoolRouter);
 app.use('/api/pickems', pickemsRouter);
 
 // TODO: comment this out for production
-app.use('/api/demo', demoRouter);
+// app.use('/api/demo', demoRouter);
 
 // refresh the schedule table on startup from json data.
 refreshSchedule();
